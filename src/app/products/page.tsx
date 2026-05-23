@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Search, Filter, PackageOpen, ArrowRight, DollarSign, ListPlus, Calculator } from "lucide-react";
+import { Plus, Search, Filter, PackageOpen, ArrowRight, DollarSign, ListPlus, Calculator, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { calculateCosts, GlobalSettings, Material } from "@/lib/pricing";
 
 export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -53,11 +54,13 @@ export default function ProductsPage() {
   const [isNewProductOpen, setIsNewProductOpen] = useState(false);
   const [newProductForm, setNewProductForm] = useState({ name: "", sku: "", category: "", targetMargin: "60" });
   const [isAddIngredientOpen, setIsAddIngredientOpen] = useState(false);
+  const [editingBomItem, setEditingBomItem] = useState<any>(null);
   const [newIngredientForm, setNewIngredientForm] = useState({ materialId: "", quantity: "" });
   const [paramsForm, setParamsForm] = useState({
     batchSize: "1",
     productionTimeHours: "0",
-    targetMargin: "60"
+    targetMargin: "60",
+    currentStock: "0"
   });
 
   useEffect(() => {
@@ -98,6 +101,7 @@ export default function ProductsPage() {
         batchSize: Number(p.batch_size),
         productionTimeHours: Number(p.production_time_hours),
         targetMargin: Number(p.target_margin),
+        currentStock: Number(p.current_stock || 0),
         bom: p.bom.map((b: any) => ({
           id: b.id,
           materialId: b.material_id,
@@ -110,7 +114,8 @@ export default function ProductsPage() {
         setParamsForm({
           batchSize: mappedProducts[0].batchSize.toString(),
           productionTimeHours: mappedProducts[0].productionTimeHours.toString(),
-          targetMargin: (mappedProducts[0].targetMargin * 100).toString()
+          targetMargin: (mappedProducts[0].targetMargin * 100).toString(),
+          currentStock: mappedProducts[0].currentStock.toString()
         });
       }
     }
@@ -135,6 +140,7 @@ export default function ProductsPage() {
         batchSize: Number(data.batch_size),
         productionTimeHours: Number(data.production_time_hours),
         targetMargin: Number(data.target_margin),
+        currentStock: Number(data.current_stock || 0),
         bom: []
       };
       setProducts([...products, newP]);
@@ -142,7 +148,8 @@ export default function ProductsPage() {
       setParamsForm({
         batchSize: newP.batchSize.toString(),
         productionTimeHours: newP.productionTimeHours.toString(),
-        targetMargin: (newP.targetMargin * 100).toString()
+        targetMargin: (newP.targetMargin * 100).toString(),
+        currentStock: newP.currentStock.toString()
       });
     }
     setIsNewProductOpen(false);
@@ -151,26 +158,68 @@ export default function ProductsPage() {
   const handleAddIngredient = async () => {
     if (!newIngredientForm.materialId || !newIngredientForm.quantity || !selectedProduct) return;
     
-    const { data, error } = await supabase.from('bom_items').insert([{
-      product_id: selectedProduct.id,
-      material_id: newIngredientForm.materialId,
-      quantity: Number(newIngredientForm.quantity)
-    }]).select('*').single();
-    
-    if (data) {
+    if (editingBomItem) {
+      const { data, error } = await supabase.from('bom_items').update({
+        material_id: newIngredientForm.materialId,
+        quantity: Number(newIngredientForm.quantity)
+      }).eq('id', editingBomItem.id).select('*').single();
+
+      if (data) {
+        const updatedProduct = {
+          ...selectedProduct,
+          bom: selectedProduct.bom.map((b: any) => b.id === editingBomItem.id ? { 
+            id: data.id,
+            materialId: data.material_id, 
+            quantity: Number(data.quantity) 
+          } : b)
+        };
+        setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+        setSelectedProduct(updatedProduct);
+      }
+      setIsAddIngredientOpen(false);
+      setEditingBomItem(null);
+      setNewIngredientForm({ materialId: "", quantity: "" });
+    } else {
+      const { data, error } = await supabase.from('bom_items').insert([{
+        product_id: selectedProduct.id,
+        material_id: newIngredientForm.materialId,
+        quantity: Number(newIngredientForm.quantity)
+      }]).select('*').single();
+      
+      if (data) {
+        const updatedProduct = {
+          ...selectedProduct,
+          bom: [...selectedProduct.bom, { 
+            id: data.id,
+            materialId: data.material_id, 
+            quantity: Number(data.quantity) 
+          }]
+        };
+        setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+        setSelectedProduct(updatedProduct);
+      }
+      // Keep modal open to allow multiple additions
+      setNewIngredientForm({ materialId: "", quantity: "" });
+    }
+  };
+
+  const handleOpenEditIngredient = (item: any) => {
+    setEditingBomItem(item);
+    setNewIngredientForm({ materialId: item.materialId, quantity: item.quantity.toString() });
+    setIsAddIngredientOpen(true);
+  };
+
+  const handleDeleteIngredient = async (bomItemId: string) => {
+    if (!confirm("Remove this ingredient from the recipe?")) return;
+    const { error } = await supabase.from('bom_items').delete().eq('id', bomItemId);
+    if (!error && selectedProduct) {
       const updatedProduct = {
         ...selectedProduct,
-        bom: [...selectedProduct.bom, { 
-          id: data.id,
-          materialId: data.material_id, 
-          quantity: Number(data.quantity) 
-        }]
+        bom: selectedProduct.bom.filter((b: any) => b.id !== bomItemId)
       };
       setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
       setSelectedProduct(updatedProduct);
     }
-    setIsAddIngredientOpen(false);
-    setNewIngredientForm({ materialId: "", quantity: "" });
   };
 
   const handleSaveParams = async () => {
@@ -178,11 +227,13 @@ export default function ProductsPage() {
     const updatedBatch = Number(paramsForm.batchSize);
     const updatedHours = Number(paramsForm.productionTimeHours);
     const updatedMargin = Number(paramsForm.targetMargin) / 100;
+    const updatedStock = Number(paramsForm.currentStock);
     
     const { error } = await supabase.from('products').update({
       batch_size: updatedBatch,
       production_time_hours: updatedHours,
-      target_margin: updatedMargin
+      target_margin: updatedMargin,
+      current_stock: updatedStock
     }).eq('id', selectedProduct.id);
     
     if (!error) {
@@ -190,7 +241,8 @@ export default function ProductsPage() {
         ...selectedProduct,
         batchSize: updatedBatch,
         productionTimeHours: updatedHours,
-        targetMargin: updatedMargin
+        targetMargin: updatedMargin,
+        currentStock: updatedStock
       };
       
       setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
@@ -199,52 +251,10 @@ export default function ProductsPage() {
   };
 
   // Costing Engine Calculations
-  const calculateCosts = (product: any) => {
-    let rawMaterialCost = 0;
-    if (product?.bom) {
-      product.bom.forEach((item: any) => {
-        const material = availableMaterials.find(m => m.id === item.materialId);
-        if (material) {
-          rawMaterialCost += material.cost * item.quantity;
-        }
-      });
-    }
-
-    const perUnitMaterialCost = product?.batchSize > 0 ? rawMaterialCost / product.batchSize : 0;
-    
-    // Labor Cost
-    const totalLaborCost = (product?.productionTimeHours || 0) * globalSettings.laborCostPerHour;
-    const perUnitLaborCost = product?.batchSize > 0 ? totalLaborCost / product.batchSize : 0;
-
-    // Indirect Cost (Reserve)
-    const baseCost = perUnitMaterialCost + perUnitLaborCost;
-    const indirectCost = baseCost * globalSettings.indirectCostReserve;
-
-    const totalCost = baseCost + indirectCost;
-
-    // Pricing Engine
-    const targetMargin = product?.targetMargin || 0.50;
-    const retailPrice = targetMargin < 1 ? totalCost / (1 - targetMargin) : totalCost * 2;
-    const distributorPrice = retailPrice * (1 - globalSettings.distributorMargin);
-    const promoPrice = retailPrice * (1 - globalSettings.promotionalDiscount);
-    const grossProfit = retailPrice - totalCost;
-
-    return {
-      perUnitMaterialCost,
-      perUnitLaborCost,
-      indirectCost,
-      totalCost,
-      retailPrice,
-      distributorPrice,
-      promoPrice,
-      grossProfit
-    };
-  };
-
-  const costs = calculateCosts(selectedProduct);
+  const costs = calculateCosts(selectedProduct, availableMaterials, globalSettings);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-2rem)] gap-6 overflow-hidden pb-4">
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Products & Costing Engine</h1>
@@ -289,9 +299,9 @@ export default function ProductsPage() {
         </Dialog>
       </div>
 
-      <div className="flex gap-6 flex-1 overflow-hidden">
+      <div className="flex gap-6 flex-1 min-h-0">
         {/* Left Side: Product List */}
-        <div className="w-1/3 flex flex-col bg-card border rounded-lg overflow-hidden">
+        <div className="w-1/3 flex flex-col bg-card border rounded-lg overflow-hidden h-full">
           <div className="p-4 border-b flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -313,7 +323,8 @@ export default function ProductsPage() {
                   setParamsForm({
                     batchSize: product.batchSize.toString(),
                     productionTimeHours: product.productionTimeHours.toString(),
-                    targetMargin: (product.targetMargin * 100).toString()
+                    targetMargin: (product.targetMargin * 100).toString(),
+                    currentStock: product.currentStock.toString()
                   });
                 }}
                 className={`p-3 mb-2 rounded-md cursor-pointer transition-colors border ${selectedProduct.id === product.id ? 'bg-primary/5 border-primary' : 'bg-background border-transparent hover:border-border'}`}
@@ -332,7 +343,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Right Side: Costing Engine & BOM */}
-        <div className="w-2/3 flex flex-col gap-4 overflow-y-auto pr-2">
+        <div className="w-2/3 flex flex-col gap-4 overflow-y-auto h-full pb-8 pr-2">
           {selectedProduct ? (
             <>
               {/* Automated Pricing Calculator Dashboard */}
@@ -393,18 +404,26 @@ export default function ProductsPage() {
                     <ListPlus className="h-4 w-4 mr-2" />
                     Add Ingredient
                   </Button>
-                  <Dialog open={isAddIngredientOpen} onOpenChange={setIsAddIngredientOpen}>
+                  <Dialog open={isAddIngredientOpen} onOpenChange={(open) => {
+                    setIsAddIngredientOpen(open);
+                    if (!open) {
+                      setEditingBomItem(null);
+                      setNewIngredientForm({ materialId: "", quantity: "" });
+                    }
+                  }}>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Add Ingredient to BOM</DialogTitle>
-                        <DialogDescription>Select a raw material and specify the quantity needed for one batch.</DialogDescription>
+                        <DialogTitle>{editingBomItem ? "Edit Ingredient" : "Add Ingredient to BOM"}</DialogTitle>
+                        <DialogDescription>{editingBomItem ? "Update the quantity or raw material." : "Select a raw material and specify the quantity needed for one batch."}</DialogDescription>
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                           <Label>Raw Material</Label>
                           <Select value={newIngredientForm.materialId} onValueChange={v => setNewIngredientForm({...newIngredientForm, materialId: v || ""})}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select raw material" />
+                              <SelectValue placeholder="Select raw material">
+                                {newIngredientForm.materialId ? availableMaterials.find(m => m.id === newIngredientForm.materialId)?.name : "Select raw material"}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {availableMaterials.map(m => (
@@ -419,20 +438,25 @@ export default function ProductsPage() {
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddIngredientOpen(false)}>Cancel</Button>
-                        <Button onClick={handleAddIngredient}>Add to BOM</Button>
+                        <Button variant="outline" onClick={() => {
+                          setIsAddIngredientOpen(false);
+                          setEditingBomItem(null);
+                          setNewIngredientForm({ materialId: "", quantity: "" });
+                        }}>Done</Button>
+                        <Button onClick={handleAddIngredient}>{editingBomItem ? "Save Changes" : "Add to BOM"}</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="max-h-[350px] overflow-y-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
                       <TableRow>
                         <TableHead>Material</TableHead>
                         <TableHead className="text-right">Qty</TableHead>
                         <TableHead className="text-right">Unit Cost</TableHead>
                         <TableHead className="text-right">Total Cost</TableHead>
+                        <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -447,6 +471,16 @@ export default function ProductsPage() {
                             <TableCell className="text-right">{item.quantity} {material.unit}</TableCell>
                             <TableCell className="text-right">${material.cost.toFixed(2)}</TableCell>
                             <TableCell className="text-right font-medium">${total.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditIngredient(item)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteIngredient(item.id)}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -461,7 +495,7 @@ export default function ProductsPage() {
                   <CardTitle>Production Parameters</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-3 gap-6">
+                  <div className="grid grid-cols-4 gap-6">
                     <div className="space-y-2">
                       <Label>Batch Size</Label>
                       <Input type="number" value={paramsForm.batchSize} onChange={(e) => setParamsForm({...paramsForm, batchSize: e.target.value})} />
@@ -473,6 +507,10 @@ export default function ProductsPage() {
                     <div className="space-y-2">
                       <Label>Target Margin (%)</Label>
                       <Input type="number" value={paramsForm.targetMargin} onChange={(e) => setParamsForm({...paramsForm, targetMargin: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Current Stock</Label>
+                      <Input type="number" value={paramsForm.currentStock} onChange={(e) => setParamsForm({...paramsForm, currentStock: e.target.value})} />
                     </div>
                   </div>
                   <Button className="mt-4 w-full" onClick={handleSaveParams}>Save Parameters</Button>

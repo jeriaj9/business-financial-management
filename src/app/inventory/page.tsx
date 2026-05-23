@@ -21,6 +21,7 @@ export default function InventoryPage() {
     productsValue: 0
   });
   const [lowStockItems, setLowStockItems] = useState<any[]>([]);
+  const [productInventory, setProductInventory] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function InventoryPage() {
         products.forEach(p => {
           pValue += Number(p.total_cost) * Number(p.current_stock);
         });
+        setProductInventory(products);
       }
       
       setMetrics({
@@ -124,7 +126,7 @@ export default function InventoryPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 flex-1">
+      <div className="grid gap-6 md:grid-cols-3 flex-1">
         {/* Left Side: Alerts & Status */}
         <Card className="flex flex-col h-full border-destructive/20">
           <CardHeader>
@@ -149,6 +151,51 @@ export default function InventoryPage() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Middle Side: Product Stock */}
+        <Card className="flex flex-col h-full">
+          <CardHeader>
+            <CardTitle>Finished Goods Inventory</CardTitle>
+            <CardDescription>Current stock levels of all products ready for sale.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 p-0 overflow-auto">
+            <Table>
+              <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead className="text-right">Stock</TableHead>
+                  <TableHead className="text-right">Value (COGS)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {productInventory.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">No products registered.</TableCell>
+                  </TableRow>
+                )}
+                {productInventory.map((p) => {
+                  const stock = Number(p.current_stock || 0);
+                  const cost = Number(p.total_cost || 0);
+                  const value = stock * cost;
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <div className="font-medium">{p.name}</div>
+                        <div className="text-xs text-muted-foreground">{p.sku}</div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {stock} <span className="text-muted-foreground font-normal text-xs ml-1">units</span>
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-emerald-600">
+                        ${value.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
