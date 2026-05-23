@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 import { Plus, Search, Filter, PackageOpen, ArrowRight, DollarSign, ListPlus, Calculator, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ import {
 import { calculateCosts, GlobalSettings, Material } from "@/lib/pricing";
 
 export default function ProductsPage() {
+  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -128,7 +130,8 @@ export default function ProductsPage() {
       category: newProductForm.category,
       batch_size: 1,
       production_time_hours: 0,
-      target_margin: Number(newProductForm.targetMargin) / 100
+      target_margin: Number(newProductForm.targetMargin) / 100,
+      company_id: profile?.company_id
     }]).select('*, bom:bom_items(*)').single();
 
     if (data) {

@@ -4,13 +4,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Save, Copy, UserPlus, Shield, ShieldCheck, Eye } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SettingsPage() {
+  const { profile } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [settingsId, setSettingsId] = useState<string | null>(null);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [settings, setSettings] = useState({
     laborCostPerHour: 100,
     distributorMargin: 20,
@@ -20,26 +39,36 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    async function loadSettings() {
-      const { data, error } = await supabase.from('settings').select('*').limit(1).single();
-      if (data) {
-        setSettingsId(data.id);
+    async function loadData() {
+      // Load Settings
+      const { data: sData } = await supabase.from('settings').select('*').limit(1).single();
+      if (sData) {
+        setSettingsId(sData.id);
         setSettings({
-          laborCostPerHour: Number(data.labor_cost_per_hour),
-          distributorMargin: Number(data.distributor_margin) * 100,
-          promotionalDiscount: Number(data.promotional_discount) * 100,
-          indirectCostReserve: Number(data.indirect_cost_reserve) * 100,
-          currency: data.currency
+          laborCostPerHour: Number(sData.labor_cost_per_hour),
+          distributorMargin: Number(sData.distributor_margin) * 100,
+          promotionalDiscount: Number(sData.promotional_discount) * 100,
+          indirectCostReserve: Number(sData.indirect_cost_reserve) * 100,
+          currency: sData.currency
         });
       }
+
+      // Load Team Members
+      if (profile?.company_id) {
+        const { data: tData } = await supabase.from('user_profiles').select('*').eq('company_id', profile.company_id);
+        if (tData) {
+          setTeamMembers(tData);
+        }
+      }
     }
-    loadSettings();
-  }, []);
+    loadData();
+  }, [profile]);
 
   const handleSave = async () => {
     if (!settingsId) return;
     setIsSaving(true);
     
+    // Pass company_id manually in case the row didn't have it initialized
     const { error } = await supabase
       .from('settings')
       .update({
@@ -55,6 +84,15 @@ export default function SettingsPage() {
     setIsSaving(false);
   };
 
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    const { error } = await supabase.from('user_profiles').update({ role: newRole }).eq('id', userId);
+    if (!error) {
+      setTeamMembers(teamMembers.map(t => t.id === userId ? { ...t, role: newRole } : t));
+    } else {
+      alert("Failed to update role. You might not have Admin privileges.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
@@ -68,86 +106,182 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Financial & Costing Rules</CardTitle>
-            <CardDescription>
-              These values act as the core variables for all BOM (Bill of Materials) and pricing calculations.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="currency">System Currency</Label>
-                <Input 
-                  id="currency" 
-                  value={settings.currency} 
-                  onChange={(e) => setSettings({...settings, currency: e.target.value})}
-                />
-                <p className="text-xs text-muted-foreground">Default currency for all reports.</p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="labor">Labor Cost Per Hour</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-muted-foreground">{settings.currency}</span>
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="general">Financial Rules</TabsTrigger>
+          <TabsTrigger value="team">Organization & Team</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="general" className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Financial & Costing Rules</CardTitle>
+              <CardDescription>
+                These values act as the core variables for all BOM (Bill of Materials) and pricing calculations.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="currency">System Currency</Label>
                   <Input 
-                    id="labor" 
-                    type="number" 
-                    className="pl-12"
-                    value={settings.laborCostPerHour} 
-                    onChange={(e) => setSettings({...settings, laborCostPerHour: Number(e.target.value)})}
+                    id="currency" 
+                    value={settings.currency} 
+                    onChange={(e) => setSettings({...settings, currency: e.target.value})}
                   />
+                  <p className="text-xs text-muted-foreground">Default currency for all reports.</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Used to calculate production costs based on time.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="dist_margin">Distributor Margin (%)</Label>
-                <div className="relative">
-                  <Input 
-                    id="dist_margin" 
-                    type="number"
-                    value={settings.distributorMargin} 
-                    onChange={(e) => setSettings({...settings, distributorMargin: Number(e.target.value)})}
-                  />
-                  <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="labor">Labor Cost Per Hour</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground">{settings.currency}</span>
+                    <Input 
+                      id="labor" 
+                      type="number" 
+                      className="pl-12"
+                      value={settings.laborCostPerHour} 
+                      onChange={(e) => setSettings({...settings, laborCostPerHour: Number(e.target.value)})}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Used to calculate production costs based on time.</p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="promo_discount">Max Promo Discount (%)</Label>
-                <div className="relative">
-                  <Input 
-                    id="promo_discount" 
-                    type="number"
-                    value={settings.promotionalDiscount} 
-                    onChange={(e) => setSettings({...settings, promotionalDiscount: Number(e.target.value)})}
-                  />
-                  <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="dist_margin">Distributor Margin (%)</Label>
+                  <div className="relative">
+                    <Input 
+                      id="dist_margin" 
+                      type="number"
+                      value={settings.distributorMargin} 
+                      onChange={(e) => setSettings({...settings, distributorMargin: Number(e.target.value)})}
+                    />
+                    <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="indirect_cost">Indirect Cost Reserve (%)</Label>
-                <div className="relative">
-                  <Input 
-                    id="indirect_cost" 
-                    type="number"
-                    value={settings.indirectCostReserve} 
-                    onChange={(e) => setSettings({...settings, indirectCostReserve: Number(e.target.value)})}
-                  />
-                  <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
+                <div className="space-y-2">
+                  <Label htmlFor="promo_discount">Max Promo Discount (%)</Label>
+                  <div className="relative">
+                    <Input 
+                      id="promo_discount" 
+                      type="number"
+                      value={settings.promotionalDiscount} 
+                      onChange={(e) => setSettings({...settings, promotionalDiscount: Number(e.target.value)})}
+                    />
+                    <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Buffer for uncalculated overhead.</p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="indirect_cost">Indirect Cost Reserve (%)</Label>
+                  <div className="relative">
+                    <Input 
+                      id="indirect_cost" 
+                      type="number"
+                      value={settings.indirectCostReserve} 
+                      onChange={(e) => setSettings({...settings, indirectCostReserve: Number(e.target.value)})}
+                    />
+                    <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Buffer for uncalculated overhead.</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="team" className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Organization Details</CardTitle>
+              <CardDescription>
+                Your workspace is isolated. To invite team members, share your unique Organization ID so they can join when they create an account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-w-md">
+                <Label>Organization Name</Label>
+                <Input value={profile?.companies?.name || "Loading..."} readOnly className="bg-muted" />
+              </div>
+              <div className="space-y-2 max-w-md mt-4">
+                <Label>Organization ID (Invite Code)</Label>
+                <div className="flex gap-2">
+                  <Input value={profile?.company_id || ""} readOnly className="bg-muted font-mono text-xs" />
+                  <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(profile?.company_id || "")}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle>Team Members</CardTitle>
+                <CardDescription>Manage access and roles for your organization.</CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => alert("Share the Organization ID above with new users so they can join upon registration.")}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Invite User
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="w-[150px]">Role</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamMembers.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            {(member.full_name || 'U')[0].toUpperCase()}
+                          </div>
+                          {member.full_name || 'Unknown User'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {new Date(member.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Select 
+                          value={member.role} 
+                          onValueChange={(v) => handleRoleChange(member.id, v)}
+                          disabled={profile?.role !== 'admin' || member.id === profile?.id}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="view">
+                              <div className="flex items-center"><Eye className="h-4 w-4 mr-2 text-muted-foreground" /> View Only</div>
+                            </SelectItem>
+                            <SelectItem value="edit">
+                              <div className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-blue-500" /> Editor</div>
+                            </SelectItem>
+                            <SelectItem value="admin">
+                              <div className="flex items-center"><Shield className="h-4 w-4 mr-2 text-destructive" /> Admin</div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

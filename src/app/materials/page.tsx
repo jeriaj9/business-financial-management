@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 import { Plus, Search, Filter, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function MaterialsPage() {
+  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [materials, setMaterials] = useState<any[]>([]);
 
@@ -118,7 +120,8 @@ export default function MaterialsPage() {
         unit_of_measure: formData.unit,
         cost_per_unit: Number(formData.cost) || 0,
         current_stock: Number(formData.stock) || 0,
-        reorder_point: Number(formData.reorder) || 0
+        reorder_point: Number(formData.reorder) || 0,
+        company_id: profile?.company_id
       }]);
 
       if (error) {

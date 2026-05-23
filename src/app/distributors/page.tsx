@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 import { Plus, Search, Filter, MoreHorizontal, FileText, Phone, Mail, Eye, DollarSign, TrendingUp, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function DistributorsPage() {
+  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [distributors, setDistributors] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -142,7 +144,8 @@ export default function DistributorsPage() {
         email: formData.email,
         phone: formData.phone,
         pricing_tier: formData.tier,
-        outstanding_balance: 0
+        outstanding_balance: 0,
+        company_id: profile?.company_id
       }]);
       if (!error) loadDistributors();
     }

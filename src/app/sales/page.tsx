@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 import { Plus, Search, Filter, DollarSign, TrendingUp, ShoppingBag, Store, Trash2, MoreHorizontal, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,7 @@ import {
 import { calculateCosts, GlobalSettings, Material, Product } from "@/lib/pricing";
 
 export default function SalesPage() {
+  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   // sales will now hold grouped invoices
   const [sales, setSales] = useState<any[]>([]);
@@ -77,12 +79,14 @@ export default function SalesPage() {
   const [cartItems, setCartItems] = useState<{productId: string, quantity: number}[]>([{productId: "", quantity: 1}]);
 
   useEffect(() => {
-    loadSales();
-  }, []);
+    if (profile?.company_id) {
+      loadSales();
+    }
+  }, [profile?.company_id]);
 
   async function loadSales() {
     // Load Sales with related product data
-    const { data: salesData } = await supabase.from('sales').select('*, products(name)').order('created_at', { ascending: false });
+    const { data: salesData } = await supabase.from('sales').select('*, products(name)').eq('company_id', profile?.company_id).order('created_at', { ascending: false });
     if (salesData) {
       // Group by invoice
       const grouped: Record<string, any> = {};
@@ -124,7 +128,7 @@ export default function SalesPage() {
     }
 
     // Load Settings
-    const { data: settingsData } = await supabase.from('settings').select('*').limit(1).single();
+    const { data: settingsData } = await supabase.from('settings').select('*').eq('company_id', profile?.company_id).limit(1).single();
     if (settingsData) {
       setGlobalSettings({
         laborCostPerHour: Number(settingsData.labor_cost_per_hour),
@@ -135,13 +139,13 @@ export default function SalesPage() {
     }
 
     // Load Distributors
-    const { data: distributorsData } = await supabase.from('distributors').select('*').order('name');
+    const { data: distributorsData } = await supabase.from('distributors').select('*').eq('company_id', profile?.company_id).order('name');
     if (distributorsData) {
       setAvailableDistributors(distributorsData);
     }
 
     // Load Materials
-    const { data: materialsData } = await supabase.from('materials').select('*');
+    const { data: materialsData } = await supabase.from('materials').select('*').eq('company_id', profile?.company_id);
     if (materialsData) {
       setAvailableMaterials(materialsData.map((m: any) => ({
         id: m.id,
@@ -152,7 +156,7 @@ export default function SalesPage() {
     }
 
     // Load Products with BOM
-    const { data: productsData } = await supabase.from('products').select('*, bom:bom_items(*)').order('name');
+    const { data: productsData } = await supabase.from('products').select('*, bom:bom_items(*)').eq('company_id', profile?.company_id).order('name');
     if (productsData) {
       const mappedProducts = productsData.map((p: any) => ({
         id: p.id,
@@ -198,7 +202,7 @@ export default function SalesPage() {
     
     const invoiceToDelete = sales.find(s => s.invoice === invoiceNumber);
     
-    const { error } = await supabase.from('sales').delete().eq('invoice_number', invoiceNumber);
+    const { error } = await supabase.from('sales').delete().eq('invoice_number', invoiceNumber).eq('company_id', profile?.company_id);
     if (!error) {
       // Revert Inventory
       if (invoiceToDelete) {
@@ -213,6 +217,7 @@ export default function SalesPage() {
               await supabase.from('inventory_transactions')
                 .delete()
                 .eq('item_id', item.productId)
+                .eq('company_id', profile?.company_id)
                 .like('notes', `%${invoiceNumber}%`);
             }
           }
@@ -230,7 +235,7 @@ export default function SalesPage() {
     // If editing, delete old rows first to replace with new cart
     if (editingInvoiceNumber) {
       const invoiceToDelete = sales.find(s => s.invoice === editingInvoiceNumber);
-      await supabase.from('sales').delete().eq('invoice_number', editingInvoiceNumber);
+      await supabase.from('sales').delete().eq('invoice_number', editingInvoiceNumber).eq('company_id', profile?.company_id);
       
       // Revert stock for the deleted edit so we can cleanly subtract the new cart
       if (invoiceToDelete) {
@@ -244,6 +249,7 @@ export default function SalesPage() {
               await supabase.from('inventory_transactions')
                 .delete()
                 .eq('item_id', item.productId)
+                .eq('company_id', profile?.company_id)
                 .like('notes', `%${editingInvoiceNumber}%`);
             }
           }
@@ -266,7 +272,8 @@ export default function SalesPage() {
       total_revenue: c.revenue,
       cogs: c.totalCogs,
       gross_profit: c.revenue - c.totalCogs,
-      payment_status: formData.status
+      payment_status: formData.status,
+      company_id: profile?.company_id
     }));
 
     if (inserts.length > 0) {
@@ -285,7 +292,8 @@ export default function SalesPage() {
               transaction_type: 'OUT',
               quantity: c.quantity,
               reference_id: null, // we don't have a specific ID, could use invoice string in notes
-              notes: `Sale for invoice ${invoiceNumber}`
+              notes: `Sale for invoice ${invoiceNumber}`,
+              company_id: profile?.company_id
             }]);
           }
         }
