@@ -384,7 +384,7 @@ export default function SalesPage() {
                   <div className="grid gap-2">
                     <Label htmlFor="customer">{formData.channel === 'B2B' ? 'Distributor' : 'Customer Name'}</Label>
                     {formData.channel === 'B2B' ? (
-                      <Select value={formData.distributorId} onValueChange={v => setFormData({...formData, distributorId: v})}>
+                      <Select value={formData.distributorId} onValueChange={v => setFormData({...formData, distributorId: v || ""})}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a distributor" />
                         </SelectTrigger>
@@ -442,7 +442,7 @@ export default function SalesPage() {
                             <TableCell>
                               <Select value={item.productId} onValueChange={v => {
                                 const newItems = [...cartItems];
-                                newItems[index].productId = v;
+                                newItems[index].productId = v || "";
                                 setCartItems(newItems);
                               }}>
                                 <SelectTrigger>
