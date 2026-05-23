@@ -131,13 +131,15 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total Revenue
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-emerald-600" />
+            <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">DOP {metrics.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
@@ -146,12 +148,14 @@ export default function Home() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Gross Profit
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">DOP {metrics.grossProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
@@ -160,10 +164,12 @@ export default function Home() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <CreditCard className="h-4 w-4 text-destructive" />
+            <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
+              <CreditCard className="h-4 w-4 text-destructive" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">DOP {metrics.totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
@@ -172,12 +178,14 @@ export default function Home() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Net Profit Margin
             </CardTitle>
-            <Activity className="h-4 w-4 text-emerald-600" />
+            <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.netProfitMargin.toFixed(1)}%</div>
@@ -188,16 +196,16 @@ export default function Home() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-7">
         {/* Main Chart */}
-        <Card className="col-span-4">
+        <Card className="col-span-1 lg:col-span-4 flex flex-col hover:shadow-sm transition-all duration-300">
           <CardHeader>
             <CardTitle>Revenue vs Expenses</CardTitle>
             <CardDescription>
               6-month historical view of cash flow generation.
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[350px]">
+          <CardContent className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
@@ -241,8 +249,8 @@ export default function Home() {
         </Card>
 
         {/* Break-Even & Top Products */}
-        <div className="col-span-3 flex flex-col gap-6">
-          <Card>
+        <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
+          <Card className="hover:shadow-sm transition-all duration-300">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2">
                 <PieChartIcon className="h-5 w-5 text-primary" />
@@ -277,12 +285,12 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="flex-1">
+          <Card className="flex-1 hover:shadow-sm transition-all duration-300">
             <CardHeader>
               <CardTitle>Top Performing Products</CardTitle>
               <CardDescription>Highest gross profit contributors.</CardDescription>
             </CardHeader>
-            <CardContent className="h-[220px]">
+            <CardContent className="min-h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={productData} layout="vertical" margin={{ top: 0, right: 0, left: 30, bottom: 0 }}>
                   <XAxis type="number" hide />

@@ -269,7 +269,7 @@ export default function ProductsPage() {
           New Product
         </Button>
         <Dialog open={isNewProductOpen} onOpenChange={setIsNewProductOpen}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Product</DialogTitle>
               <DialogDescription>Initialize a new product to begin creating its Bill of Materials.</DialogDescription>
@@ -332,7 +332,7 @@ export default function ProductsPage() {
                 }}
                 className={`p-3 mb-2 rounded-md cursor-pointer transition-colors border ${selectedProduct.id === product.id ? 'bg-primary/5 border-primary' : 'bg-background border-transparent hover:border-border'}`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <p className="font-medium">{product.name}</p>
                   {selectedProduct.id === product.id && <ArrowRight className="h-4 w-4 text-primary" />}
                 </div>
@@ -359,7 +359,7 @@ export default function ProductsPage() {
                   <CardDescription>Based on BOM, labor, and global margin rules (DOP).</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div className="bg-background border rounded-lg p-3 text-center">
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Cost</p>
                       <p className="text-xl font-bold">${costs.totalCost.toFixed(2)}</p>
@@ -414,7 +414,7 @@ export default function ProductsPage() {
                       setNewIngredientForm({ materialId: "", quantity: "" });
                     }
                   }}>
-                    <DialogContent>
+                    <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>{editingBomItem ? "Edit Ingredient" : "Add Ingredient to BOM"}</DialogTitle>
                         <DialogDescription>{editingBomItem ? "Update the quantity or raw material." : "Select a raw material and specify the quantity needed for one batch."}</DialogDescription>
@@ -452,7 +452,7 @@ export default function ProductsPage() {
                   </Dialog>
                 </CardHeader>
                 <CardContent className="max-h-[350px] overflow-y-auto">
-                  <Table>
+                  <Table className="min-w-[800px] lg:min-w-full">
                     <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
                       <TableRow>
                         <TableHead>Material</TableHead>
@@ -498,7 +498,7 @@ export default function ProductsPage() {
                   <CardTitle>Production Parameters</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
                     <div className="space-y-2">
                       <Label>Batch Size</Label>
                       <Input type="number" value={paramsForm.batchSize} onChange={(e) => setParamsForm({...paramsForm, batchSize: e.target.value})} />

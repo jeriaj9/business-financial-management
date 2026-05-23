@@ -84,7 +84,7 @@ export default function InventoryPage() {
   }, []);
   return (
     <div className="flex flex-col gap-6 h-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Inventory Intelligence</h1>
           <p className="text-muted-foreground mt-1">Monitor movements across raw materials and finished goods.</p>
@@ -161,7 +161,7 @@ export default function InventoryPage() {
             <CardDescription>Current stock levels of all products ready for sale.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 p-0 overflow-auto">
-            <Table>
+            <Table className="min-w-[800px] lg:min-w-full">
               <TableHeader className="bg-muted/50 sticky top-0 z-10">
                 <TableRow>
                   <TableHead>Product</TableHead>
@@ -206,7 +206,7 @@ export default function InventoryPage() {
             <CardDescription>Latest stock movements across the platform.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 p-0 overflow-auto">
-            <Table>
+            <Table className="min-w-[800px] lg:min-w-full">
               <TableHeader className="bg-muted/50 sticky top-0">
                 <TableRow>
                   <TableHead>Item</TableHead>

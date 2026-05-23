@@ -143,7 +143,7 @@ export default function MaterialsPage() {
 
   return (
     <div className="flex flex-col gap-6 h-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Raw Materials</h1>
           <p className="text-muted-foreground mt-1">Manage your ingredients, packaging, and current stock levels.</p>
@@ -155,7 +155,7 @@ export default function MaterialsPage() {
         </Button>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingMaterial ? "Edit Material" : "Add New Material"}</DialogTitle>
               <DialogDescription>
@@ -276,7 +276,7 @@ export default function MaterialsPage() {
         </div>
 
         <div className="relative w-full overflow-auto">
-          <Table>
+          <Table className="min-w-[800px] lg:min-w-full">
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Material Name</TableHead>

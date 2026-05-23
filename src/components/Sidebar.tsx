@@ -34,7 +34,7 @@ export function Sidebar() {
   const firstLetter = companyName.charAt(0).toUpperCase();
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-card px-4 py-6">
+    <div className="flex h-full w-64 flex-col bg-card px-4 py-6">
       <div className="flex items-center gap-2 px-2 mb-8">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
           {firstLetter}

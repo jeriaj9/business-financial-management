@@ -95,7 +95,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
           <p className="text-muted-foreground mt-1">Manage global financial rules and platform configurations.</p>
@@ -230,7 +230,7 @@ export default function SettingsPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <Table>
+              <Table className="min-w-[800px] lg:min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>User</TableHead>

@@ -361,7 +361,7 @@ export default function SalesPage() {
             setCartItems([{productId: "", quantity: 1}]);
           }
         }}>
-          <DialogContent className="sm:max-w-4xl">
+          <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingInvoiceNumber ? `Edit Sale: ${editingInvoiceNumber}` : "Register New Sale"}</DialogTitle>
               <DialogDescription>Add line items to your invoice. Pricing is auto-calculated based on your BOM.</DialogDescription>
@@ -432,7 +432,7 @@ export default function SalesPage() {
                 </div>
                 
                 <div className="border rounded-lg overflow-hidden">
-                  <Table>
+                  <Table className="min-w-[800px] lg:min-w-full">
                     <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead>Product</TableHead>
@@ -519,7 +519,7 @@ export default function SalesPage() {
         
         {/* View Details Modal */}
         <Dialog open={!!viewDetailsInvoice} onOpenChange={(open) => !open && setViewDetailsInvoice(null)}>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             {viewDetailsInvoice && (
               <>
                 <DialogHeader>
@@ -529,7 +529,7 @@ export default function SalesPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="border rounded-lg overflow-hidden my-4">
-                  <Table>
+                  <Table className="min-w-[800px] lg:min-w-full">
                     <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead>Product</TableHead>
@@ -621,7 +621,7 @@ export default function SalesPage() {
         </div>
         
         <div className="relative w-full overflow-y-auto">
-          <Table>
+          <Table className="min-w-[800px] lg:min-w-full">
             <TableHeader className="bg-muted/50 sticky top-0 z-10">
               <TableRow>
                 <TableHead>Date</TableHead>

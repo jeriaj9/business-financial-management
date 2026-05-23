@@ -126,7 +126,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="flex flex-col gap-6 h-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Operating Expenses</h1>
           <p className="text-muted-foreground mt-1">Track overhead, marketing, and operational costs.</p>
@@ -143,7 +143,7 @@ export default function ExpensesPage() {
             setFormData({ date: new Date().toISOString().split('T')[0], category: "", description: "", amount: "", reference: "" });
           }
         }}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingExpenseId ? "Edit Expense" : "Log New Expense"}</DialogTitle>
               <DialogDescription>Record an operational cost that affects your overall net profit.</DialogDescription>
@@ -195,7 +195,7 @@ export default function ExpensesPage() {
 
         {/* View Details Modal */}
         <Dialog open={!!viewDetailsExpense} onOpenChange={(open) => !open && setViewDetailsExpense(null)}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             {viewDetailsExpense && (
               <>
                 <DialogHeader>
@@ -277,7 +277,7 @@ export default function ExpensesPage() {
         </div>
         
         <div className="relative w-full overflow-auto">
-          <Table>
+          <Table className="min-w-[800px] lg:min-w-full">
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Date</TableHead>

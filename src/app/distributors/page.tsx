@@ -176,7 +176,7 @@ export default function DistributorsPage() {
             setFormData({ name: "", contact: "", email: "", phone: "", tier: "Standard" });
           }
         }}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingDistributorId ? "Edit Distributor Profile" : "New Distributor Profile"}</DialogTitle>
               <DialogDescription>Create a new wholesale account for specific pricing rules.</DialogDescription>
@@ -223,7 +223,7 @@ export default function DistributorsPage() {
         
         {/* View Details Modal */}
         <Dialog open={!!viewDetailsDistributor} onOpenChange={(open) => !open && setViewDetailsDistributor(null)}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto max-h-[90vh] flex flex-col">
             {viewDetailsDistributor && (
               <>
                 <DialogHeader className="shrink-0">
@@ -268,7 +268,7 @@ export default function DistributorsPage() {
                 </div>
                 
                 <div className="flex-1 overflow-auto border rounded-lg min-h-0">
-                  <Table>
+                  <Table className="min-w-[800px] lg:min-w-full">
                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                       <TableRow>
                         <TableHead>Date</TableHead>
@@ -357,7 +357,7 @@ export default function DistributorsPage() {
         </div>
         
         <div className="relative w-full overflow-y-auto">
-          <Table>
+          <Table className="min-w-[800px] lg:min-w-full">
             <TableHeader className="bg-muted/50 sticky top-0 z-10">
               <TableRow>
                 <TableHead>Distributor</TableHead>

@@ -33,14 +33,18 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
   }
 
   return (
-    <>
-      <Sidebar />
-      <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex h-dvh w-full overflow-hidden bg-background">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex h-full shrink-0 border-r">
+        <Sidebar />
+      </div>
+      
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto bg-muted/20 p-6">
+        <main className="flex-1 overflow-y-auto bg-muted/20 p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </div>
-    </>
+    </div>
   );
 }
