@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/AuthProvider";
 import {
   LayoutDashboard,
   Package,
@@ -27,14 +28,18 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { profile } = useAuth();
+  
+  const companyName = profile?.companies?.name || "Arelum ERP";
+  const firstLetter = companyName.charAt(0).toUpperCase();
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card px-4 py-6">
       <div className="flex items-center gap-2 px-2 mb-8">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
-          A
+          {firstLetter}
         </div>
-        <span className="text-xl font-bold tracking-tight">Arelum ERP</span>
+        <span className="text-xl font-bold tracking-tight truncate">{companyName}</span>
       </div>
 
       <nav className="flex-1 space-y-1">
@@ -62,8 +67,8 @@ export function Sidebar() {
 
       <div className="mt-auto px-2 pb-4">
         <div className="rounded-lg bg-muted p-4 text-xs">
-          <p className="font-semibold mb-1">Arelum Admin</p>
-          <p className="text-muted-foreground text-xs">System v1.0.0</p>
+          <p className="font-semibold mb-1 truncate">{profile?.full_name || "Unknown User"}</p>
+          <p className="text-muted-foreground text-xs capitalize">Role: {profile?.role || "View"}</p>
         </div>
       </div>
     </div>
