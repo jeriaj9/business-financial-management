@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Bell, Search, User, LogOut, Menu } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -18,13 +20,21 @@ import { Sidebar } from "@/components/Sidebar";
 
 export function Header() {
   const { profile, signOut } = useAuth();
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    // Automatically close the mobile menu when the route changes
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   const userInitial = profile?.full_name?.charAt(0).toUpperCase() || <User className="h-4 w-4 text-primary" />;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
       <div className="flex items-center gap-4 flex-1">
         {/* Mobile Navigation Trigger */}
-        <Sheet>
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger className="md:hidden inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 w-9">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle menu</span>
