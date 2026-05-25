@@ -57,14 +57,23 @@ export default function Home() {
 
       const prodPerf: Record<string, {name: string, sales: number, profit: number}> = {};
 
-      const { data: products } = await supabase.from('products').select('*');
+      // FETCH ALL DATA IN PARALLEL (Massive Performance Boost)
+      const [
+        { data: products },
+        { data: sales },
+        { data: expenses }
+      ] = await Promise.all([
+        supabase.from('products').select('*'),
+        supabase.from('sales').select('*'),
+        supabase.from('expenses').select('*')
+      ]);
+
       const productMap: Record<string, string> = {};
       if (products) {
         products.forEach(p => productMap[p.id] = p.name);
       }
 
-      // Fetch Sales
-      const { data: sales } = await supabase.from('sales').select('*');
+      // Calculate Sales
       let totalRev = 0;
       let totalGP = 0;
       if (sales) {
@@ -83,8 +92,7 @@ export default function Home() {
         });
       }
 
-      // Fetch Expenses
-      const { data: expenses } = await supabase.from('expenses').select('*');
+      // Calculate Expenses
       let totalExp = 0;
       if (expenses) {
         expenses.forEach(e => {

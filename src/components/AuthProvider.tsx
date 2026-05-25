@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchProfile(session.user.id);
       } else {
         setLoading(false);
-        if (pathname !== '/login') {
+        if (window.location.pathname !== '/login') {
           router.push('/login');
         }
       }
@@ -45,13 +45,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         await fetchProfile(session.user.id);
-        if (pathname === '/login') {
+        if (window.location.pathname === '/login') {
           router.push('/');
         }
       } else {
         setProfile(null);
         setLoading(false);
-        if (pathname !== '/login') {
+        if (window.location.pathname !== '/login') {
           router.push('/login');
         }
       }
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [pathname]);
+  }, []);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase.from('user_profiles').select('*, companies(*)').eq('id', userId).single();
