@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Plus, Search, Filter, DollarSign, TrendingUp, ShoppingBag, Store, Trash2, MoreHorizontal, Eye, Pencil } from "lucide-react";
@@ -49,6 +50,7 @@ import { calculateCosts, GlobalSettings, Material, Product } from "@/lib/pricing
 export default function SalesPage() {
   const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   // sales will now hold grouped invoices
   const [sales, setSales] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);

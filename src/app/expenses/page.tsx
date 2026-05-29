@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
+import { PageLoader } from "@/components/PageLoader";
 import { Plus, Search, Filter, DollarSign, TrendingDown, Receipt, Calendar, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,7 @@ export default function ExpensesPage() {
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [viewDetailsExpense, setViewDetailsExpense] = useState<any>(null);
   const [formData, setFormData] = useState({ date: new Date().toISOString().split('T')[0], category: "", description: "", amount: "", reference: "" });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadExpenses();
@@ -69,9 +71,10 @@ export default function ExpensesPage() {
         category: e.category,
         description: e.description || "",
         amount: Number(e.amount),
-        reference: e.vendor || ""
+        reference: e.reference || ""
       })));
     }
+    setIsLoading(false);
   }
 
   const handleEditClick = (expense: any) => {
@@ -123,6 +126,8 @@ export default function ExpensesPage() {
   };
 
   const totalMonthly = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="flex flex-col gap-6 h-full">

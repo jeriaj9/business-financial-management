@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { PageLoader } from "@/components/PageLoader";
 import { ArrowDownRight, ArrowUpRight, Box, Boxes, PackageSearch } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export default function InventoryPage() {
   const [lowStockItems, setLowStockItems] = useState<any[]>([]);
   const [productInventory, setProductInventory] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -79,9 +81,13 @@ export default function InventoryPage() {
         });
         setTransactions(mappedTxs);
       }
+      setIsLoading(false);
     }
     loadData();
   }, []);
+
+  if (isLoading) return <PageLoader />;
+
   return (
     <div className="flex flex-col gap-6 h-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

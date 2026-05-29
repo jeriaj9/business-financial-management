@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Plus, Search, Filter, PackageOpen, ArrowRight, DollarSign, ListPlus, Calculator, Pencil, Trash2 } from "lucide-react";
@@ -41,6 +42,7 @@ import { calculateCosts, GlobalSettings, Material } from "@/lib/pricing";
 
 export default function ProductsPage() {
   const { profile } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -121,6 +123,7 @@ export default function ProductsPage() {
         });
       }
     }
+    setIsLoading(false);
   }
 
   const handleCreateProduct = async () => {
@@ -255,6 +258,8 @@ export default function ProductsPage() {
 
   // Costing Engine Calculations
   const costs = calculateCosts(selectedProduct, availableMaterials, globalSettings);
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] gap-6 overflow-hidden pb-4">

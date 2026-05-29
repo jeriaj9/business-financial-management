@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Plus, Search, Filter, MoreHorizontal, FileText, Phone, Mail, Eye, DollarSign, TrendingUp, Pencil, Trash2 } from "lucide-react";
@@ -47,6 +48,7 @@ import {
 
 export default function DistributorsPage() {
   const { profile } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [distributors, setDistributors] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -106,6 +108,7 @@ export default function DistributorsPage() {
         };
       }));
     }
+    setIsLoading(false);
   }
 
   const handleEditClick = (distributor: any) => {
@@ -156,6 +159,8 @@ export default function DistributorsPage() {
   };
 
   const totalOutstanding = distributors.reduce((sum, d) => sum + d.balance, 0);
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="flex flex-col gap-6 h-full">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Plus, Search, Filter, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -42,6 +43,7 @@ import {
 
 export default function MaterialsPage() {
   const { profile } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [materials, setMaterials] = useState<any[]>([]);
 
@@ -63,6 +65,7 @@ export default function MaterialsPage() {
         reorder: Number(m.reorder_point)
       })));
     }
+    setIsLoading(false);
   }
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
@@ -140,6 +143,8 @@ export default function MaterialsPage() {
       loadMaterials();
     }
   };
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="flex flex-col gap-6 h-full">

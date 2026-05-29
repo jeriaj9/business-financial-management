@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { PageLoader } from "@/components/PageLoader";
 import {
   Card,
   CardContent,
@@ -42,6 +43,7 @@ export default function Home() {
     breakEvenProgress: 0,
     averageMarginPercent: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -124,11 +126,14 @@ export default function Home() {
       });
 
       setChartData(Object.values(monthly));
-      setProductData(Object.values(prodPerf).sort((a, b) => b.profit - a.profit).slice(0, 5));
+      setProductData(Object.values(prodPerf).sort((a, b) => b.sales - a.sales).slice(0, 5));
+      setIsLoading(false);
     }
 
     loadDashboard();
   }, []);
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="flex flex-col gap-6 h-full pb-8">
