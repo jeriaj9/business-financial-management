@@ -61,7 +61,7 @@ export default function ExpensesPage() {
   }, []);
 
   async function loadExpenses() {
-    const { data } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false });
+    const { data } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false }).limit(200);
     if (data) {
       setExpenses(data.map(e => ({
         id: e.id,

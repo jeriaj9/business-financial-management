@@ -86,7 +86,7 @@ export default function SalesPage() {
 
   async function loadSales() {
     // Load Sales with related product data
-    const { data: salesData } = await supabase.from('sales').select('*, products(name)').eq('company_id', profile?.company_id).order('created_at', { ascending: false });
+    const { data: salesData } = await supabase.from('sales').select('*, products(name)').eq('company_id', profile?.company_id).order('created_at', { ascending: false }).limit(200);
     if (salesData) {
       // Group by invoice
       const grouped: Record<string, any> = {};
@@ -201,31 +201,29 @@ export default function SalesPage() {
     if (!confirm(`Are you sure you want to delete invoice ${invoiceNumber}? This action cannot be undone.`)) return;
     
     const invoiceToDelete = sales.find(s => s.invoice === invoiceNumber);
-    
-    const { error } = await supabase.from('sales').delete().eq('invoice_number', invoiceNumber).eq('company_id', profile?.company_id);
-    if (!error) {
-      // Revert Inventory
-      if (invoiceToDelete) {
-        for (const item of invoiceToDelete.items) {
-          if (item.productId) {
-            // Fetch live stock to avoid race conditions
-            const { data: dbProduct } = await supabase.from('products').select('current_stock').eq('id', item.productId).single();
-            if (dbProduct) {
-              await supabase.from('products').update({ current_stock: Number(dbProduct.current_stock) + item.quantity }).eq('id', item.productId);
-              
-              // Remove the original transaction log instead of creating a reverse one
-              await supabase.from('inventory_transactions')
-                .delete()
-                .eq('item_id', item.productId)
-                .eq('company_id', profile?.company_id)
-                .like('notes', `%${invoiceNumber}%`);
-            }
-          }
-        }
-      }
-      loadSales();
-    } else {
+    if (!invoiceToDelete) return;
+
+    const reversalTransactions = invoiceToDelete.items.filter((i: any) => i.productId).map((item: any) => ({
+      company_id: profile?.company_id,
+      item_type: 'PRODUCT',
+      item_id: item.productId,
+      transaction_type: 'IN',
+      quantity: item.quantity,
+      reference_id: null,
+      notes: `Voided Sale ${invoiceNumber}`
+    }));
+
+    const { error } = await supabase.rpc('reverse_sale', {
+      p_invoice_number: invoiceNumber,
+      p_company_id: profile?.company_id,
+      p_transactions: reversalTransactions
+    });
+
+    if (error) {
+      console.error('Error reversing sale:', error);
       alert(`Error deleting invoice: ${error.message}`);
+    } else {
+      loadSales();
     }
   };
 
@@ -277,27 +275,22 @@ export default function SalesPage() {
     }));
 
     if (inserts.length > 0) {
-      const { error } = await supabase.from('sales').insert(inserts);
+      const inventoryTransactions = cartTotals.filter(c => c.productId).map(c => ({
+        company_id: profile?.company_id,
+        item_type: 'PRODUCT',
+        item_id: c.productId,
+        transaction_type: 'OUT',
+        quantity: c.quantity,
+        reference_id: null,
+        notes: `Sale for invoice ${invoiceNumber}`
+      }));
+
+      const { error } = await supabase.rpc('process_sale', {
+        p_sales: inserts,
+        p_transactions: inventoryTransactions
+      });
+
       if (!error) {
-        // Deduct inventory for successful sale
-        for (const c of cartTotals.filter(c => c.productId)) {
-          const { data: dbProduct } = await supabase.from('products').select('current_stock').eq('id', c.productId).single();
-          if (dbProduct) {
-            await supabase.from('products').update({ current_stock: Number(dbProduct.current_stock) - c.quantity }).eq('id', c.productId);
-            
-            // Log outbound transaction
-            await supabase.from('inventory_transactions').insert([{
-              item_type: 'PRODUCT',
-              item_id: c.productId,
-              transaction_type: 'OUT',
-              quantity: c.quantity,
-              reference_id: null, // we don't have a specific ID, could use invoice string in notes
-              notes: `Sale for invoice ${invoiceNumber}`,
-              company_id: profile?.company_id
-            }]);
-          }
-        }
-        
         loadSales();
       } else {
         console.error("Sale insert error:", error);

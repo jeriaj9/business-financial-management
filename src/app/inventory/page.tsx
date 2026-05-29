@@ -63,7 +63,7 @@ export default function InventoryPage() {
       setLowStockItems(lowItems);
 
       // Fetch transactions
-      const { data: txs } = await supabase.from('inventory_transactions').select('*').order('created_at', { ascending: false }).limit(20);
+      const { data: txs } = await supabase.from('inventory_transactions').select('*').order('created_at', { ascending: false }).limit(200);
       if (txs) {
         const allItems = [...(materials || []), ...(products || [])];
         const mappedTxs = txs.map(tx => {
