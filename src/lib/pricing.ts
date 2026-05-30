@@ -26,8 +26,8 @@ export interface Product {
 }
 
 export const calculateCosts = (
-  product: Product | null | undefined, 
-  availableMaterials: Material[], 
+  product: Product | null | undefined,
+  availableMaterials: Material[],
   globalSettings: GlobalSettings
 ) => {
   if (!product) {
@@ -39,7 +39,10 @@ export const calculateCosts = (
       retailPrice: 0,
       distributorPrice: 0,
       promoPrice: 0,
-      grossProfit: 0
+      grossProfit: 0,
+      retailProfitDist: 0,
+      distributorProfit: 0,
+      calculatedMargin: 0
     };
   }
 
@@ -54,7 +57,7 @@ export const calculateCosts = (
   }
 
   const perUnitMaterialCost = product.batchSize > 0 ? rawMaterialCost / product.batchSize : 0;
-  
+
   // Labor Cost
   const totalLaborCost = (product.productionTimeHours || 0) * globalSettings.laborCostPerHour;
   const perUnitLaborCost = product.batchSize > 0 ? totalLaborCost / product.batchSize : 0;
@@ -66,11 +69,21 @@ export const calculateCosts = (
   const totalCost = baseCost + indirectCost;
 
   // Pricing Engine
-  const targetMargin = product.targetMargin || 0.50;
-  const retailPrice = targetMargin < 1 ? totalCost / (1 - targetMargin) : totalCost * 2;
+  let targetMargin = product.targetMargin || 0;
+  let retailPrice = 0;
+  
+  if (product.targetPrice !== undefined && product.targetPrice !== null) {
+    retailPrice = product.targetPrice;
+    targetMargin = totalCost > 0 ? (retailPrice / totalCost) - 1 : 0;
+  } else {
+    retailPrice = totalCost * (1 + targetMargin);
+  }
+
   const distributorPrice = retailPrice * (1 - globalSettings.distributorMargin);
   const promoPrice = retailPrice * (1 - globalSettings.promotionalDiscount);
   const grossProfit = retailPrice - totalCost;
+  const retailProfitDist = distributorPrice - totalCost;
+  const distributorProfit = retailPrice - distributorPrice;
 
   return {
     perUnitMaterialCost,
@@ -80,6 +93,9 @@ export const calculateCosts = (
     retailPrice,
     distributorPrice,
     promoPrice,
-    grossProfit
+    grossProfit,
+    retailProfitDist,
+    distributorProfit,
+    calculatedMargin: targetMargin
   };
 };

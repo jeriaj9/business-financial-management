@@ -137,11 +137,18 @@ export default function MaterialsPage() {
     setIsModalOpen(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this material?")) {
-      await supabase.from('materials').delete().eq('id', id);
-      loadMaterials();
+  const handleDelete = async (id: string, name: string) => {
+    // Check if material is used in any BOM
+    const { data: usage } = await supabase.from('bom_items').select('product_id').eq('material_id', id);
+    if (usage && usage.length > 0) {
+      const isConfirmed = confirm(`WARNING: The material "${name}" is currently being used in ${usage.length} product(s)! Deleting it will permanently break their BOM recipes.\n\nAre you absolutely sure you want to delete it?`);
+      if (!isConfirmed) return;
+    } else {
+      if (!confirm("Are you sure you want to delete this material?")) return;
     }
+
+    await supabase.from('materials').delete().eq('id', id);
+    loadMaterials();
   };
 
   if (isLoading) return <PageLoader />;
@@ -335,7 +342,7 @@ export default function MaterialsPage() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDelete(material.id)} className="text-destructive">
+                            <DropdownMenuItem onClick={() => handleDelete(material.id, material.name)} className="text-destructive">
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
