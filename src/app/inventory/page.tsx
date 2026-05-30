@@ -28,60 +28,65 @@ export default function InventoryPage() {
 
   useEffect(() => {
     async function loadData() {
-      // Fetch materials
-      const { data: materials } = await supabase.from('materials').select('*');
-      let mValue = 0;
-      let lowItems: any[] = [];
-      if (materials) {
-        materials.forEach(m => {
-          mValue += Number(m.cost_per_unit) * Number(m.current_stock);
-          if (Number(m.current_stock) <= Number(m.reorder_point)) {
-            lowItems.push({
-              name: m.name,
-              current: Number(m.current_stock),
-              reorder: Number(m.reorder_point),
-              unit: m.unit_of_measure,
-              type: "Material"
-            });
-          }
-        });
-      }
+      try {
+        // Fetch materials
+        const { data: materials } = await supabase.from('materials').select('*');
+        let mValue = 0;
+        let lowItems: any[] = [];
+        if (materials) {
+          materials.forEach(m => {
+            mValue += Number(m.cost_per_unit) * Number(m.current_stock);
+            if (Number(m.current_stock) <= Number(m.reorder_point)) {
+              lowItems.push({
+                name: m.name,
+                current: Number(m.current_stock),
+                reorder: Number(m.reorder_point),
+                unit: m.unit_of_measure,
+                type: "Material"
+              });
+            }
+          });
+        }
 
-      // Fetch products
-      const { data: products } = await supabase.from('products').select('*');
-      let pValue = 0;
-      if (products) {
-        products.forEach(p => {
-          pValue += Number(p.total_cost) * Number(p.current_stock);
+        // Fetch products
+        const { data: products } = await supabase.from('products').select('*');
+        let pValue = 0;
+        if (products) {
+          products.forEach(p => {
+            pValue += Number(p.total_cost) * Number(p.current_stock);
+          });
+          setProductInventory(products);
+        }
+        
+        setMetrics({
+          lowStockCount: lowItems.length,
+          materialsValue: mValue,
+          productsValue: pValue
         });
-        setProductInventory(products);
-      }
-      
-      setMetrics({
-        lowStockCount: lowItems.length,
-        materialsValue: mValue,
-        productsValue: pValue
-      });
-      setLowStockItems(lowItems);
+        setLowStockItems(lowItems);
 
-      // Fetch transactions
-      const { data: txs } = await supabase.from('inventory_transactions').select('*').order('created_at', { ascending: false }).limit(200);
-      if (txs) {
-        const allItems = [...(materials || []), ...(products || [])];
-        const mappedTxs = txs.map(tx => {
-          const matchedItem = allItems.find(i => i.id === tx.item_id);
-          return {
-            id: tx.id,
-            date: new Date(tx.created_at).toLocaleDateString(),
-            item: matchedItem ? matchedItem.name : "Unknown Item",
-            type: tx.transaction_type,
-            qty: Number(tx.quantity),
-            reference: tx.reference_id || "System"
-          }
-        });
-        setTransactions(mappedTxs);
+        // Fetch transactions
+        const { data: txs } = await supabase.from('inventory_transactions').select('*').order('created_at', { ascending: false }).limit(200);
+        if (txs) {
+          const allItems = [...(materials || []), ...(products || [])];
+          const mappedTxs = txs.map(tx => {
+            const matchedItem = allItems.find(i => i.id === tx.item_id);
+            return {
+              id: tx.id,
+              date: new Date(tx.created_at).toLocaleDateString(),
+              item: matchedItem ? matchedItem.name : "Unknown Item",
+              type: tx.transaction_type,
+              qty: Number(tx.quantity),
+              reference: tx.reference_id || "System"
+            }
+          });
+          setTransactions(mappedTxs);
+        }
+      } catch (e: any) {
+        console.error("loadData error:", e);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
     loadData();
   }, []);

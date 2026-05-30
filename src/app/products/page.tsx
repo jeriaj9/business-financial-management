@@ -52,80 +52,85 @@ export default function ProductsPage() {
 
   async function loadData() {
     setIsLoading(true);
-    const { data: settingsData } = await supabase.from('settings').select('*').limit(1).single();
-    if (settingsData) {
-      setGlobalSettings({
-        laborCostPerHour: Number(settingsData.labor_cost_per_hour),
-        distributorMargin: Number(settingsData.distributor_margin),
-        promotionalDiscount: Number(settingsData.promotional_discount),
-        indirectCostReserve: Number(settingsData.indirect_cost_reserve)
-      });
-    }
-
-    const { data: materialsData } = await supabase.from('materials').select('*');
-    if (materialsData) {
-      setAvailableMaterials(materialsData.map((m: any) => ({
-        id: m.id,
-        name: m.name,
-        cost: Number(m.cost_per_unit),
-        unit: m.unit_of_measure
-      })));
-    }
-
-    const { data: productsData } = await supabase.from('products').select('*, bom:bom_items(*)').order('name');
-    if (productsData) {
-      const mappedProducts = productsData.map((p: any) => ({
-        id: p.id,
-        sku: p.sku || "",
-        name: p.name,
-        category: p.category || "",
-        batchSize: Number(p.batch_size),
-        productionTimeHours: Number(p.production_time_hours),
-        targetMargin: Number(p.target_margin), // Keep for initial cost calc
-        currentStock: Number(p.current_stock || 0),
-        bom: p.bom.map((b: any) => ({
-          id: b.id,
-          materialId: b.material_id,
-          quantity: Number(b.quantity)
-        }))
-      }));
-      setProducts(mappedProducts);
-      
-      // Keep selection if it exists, else select first
-      if (selectedProduct) {
-        const found = mappedProducts.find(p => p.id === selectedProduct.id);
-        if (found) {
-           setSelectedProduct(found);
-           const initCosts = calculateCosts(found, (materialsData || []).map((m: any) => ({ id: m.id, name: m.name, cost: Number(m.cost_per_unit), unit: m.unit_of_measure })), {
-             laborCostPerHour: Number(settingsData?.labor_cost_per_hour || 100),
-             distributorMargin: Number(settingsData?.distributor_margin || 0.20),
-             promotionalDiscount: Number(settingsData?.promotional_discount || 0.20),
-             indirectCostReserve: Number(settingsData?.indirect_cost_reserve || 0.10)
-           });
-           setParamsForm({
-             batchSize: found.batchSize.toString(),
-             productionTimeHours: found.productionTimeHours.toString(),
-             targetPrice: initCosts.retailPrice.toFixed(2),
-             currentStock: found.currentStock.toString()
-           });
-        }
-      } else if (mappedProducts.length > 0) {
-        setSelectedProduct(mappedProducts[0]);
-        const initCosts = calculateCosts(mappedProducts[0], (materialsData || []).map((m: any) => ({ id: m.id, name: m.name, cost: Number(m.cost_per_unit), unit: m.unit_of_measure })), {
-             laborCostPerHour: Number(settingsData?.labor_cost_per_hour || 100),
-             distributorMargin: Number(settingsData?.distributor_margin || 0.20),
-             promotionalDiscount: Number(settingsData?.promotional_discount || 0.20),
-             indirectCostReserve: Number(settingsData?.indirect_cost_reserve || 0.10)
-        });
-        setParamsForm({
-          batchSize: mappedProducts[0].batchSize.toString(),
-          productionTimeHours: mappedProducts[0].productionTimeHours.toString(),
-          targetPrice: initCosts.retailPrice.toFixed(2),
-          currentStock: mappedProducts[0].currentStock.toString()
+    try {
+      const { data: settingsData } = await supabase.from('settings').select('*').limit(1).single();
+      if (settingsData) {
+        setGlobalSettings({
+          laborCostPerHour: Number(settingsData.labor_cost_per_hour),
+          distributorMargin: Number(settingsData.distributor_margin),
+          promotionalDiscount: Number(settingsData.promotional_discount),
+          indirectCostReserve: Number(settingsData.indirect_cost_reserve)
         });
       }
+
+      const { data: materialsData } = await supabase.from('materials').select('*');
+      if (materialsData) {
+        setAvailableMaterials(materialsData.map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          cost: Number(m.cost_per_unit),
+          unit: m.unit_of_measure
+        })));
+      }
+
+      const { data: productsData } = await supabase.from('products').select('*, bom:bom_items(*)').order('name');
+      if (productsData) {
+        const mappedProducts = productsData.map((p: any) => ({
+          id: p.id,
+          sku: p.sku || "",
+          name: p.name,
+          category: p.category || "",
+          batchSize: Number(p.batch_size),
+          productionTimeHours: Number(p.production_time_hours),
+          targetMargin: Number(p.target_margin), // Keep for initial cost calc
+          currentStock: Number(p.current_stock || 0),
+          bom: p.bom.map((b: any) => ({
+            id: b.id,
+            materialId: b.material_id,
+            quantity: Number(b.quantity)
+          }))
+        }));
+        setProducts(mappedProducts);
+        
+        // Keep selection if it exists, else select first
+        if (selectedProduct) {
+          const found = mappedProducts.find(p => p.id === selectedProduct.id);
+          if (found) {
+             setSelectedProduct(found);
+             const initCosts = calculateCosts(found, (materialsData || []).map((m: any) => ({ id: m.id, name: m.name, cost: Number(m.cost_per_unit), unit: m.unit_of_measure })), {
+               laborCostPerHour: Number(settingsData?.labor_cost_per_hour || 100),
+               distributorMargin: Number(settingsData?.distributor_margin || 0.20),
+               promotionalDiscount: Number(settingsData?.promotional_discount || 0.20),
+               indirectCostReserve: Number(settingsData?.indirect_cost_reserve || 0.10)
+             });
+             setParamsForm({
+               batchSize: found.batchSize.toString(),
+               productionTimeHours: found.productionTimeHours.toString(),
+               targetPrice: initCosts.retailPrice.toFixed(2),
+               currentStock: found.currentStock.toString()
+             });
+          }
+        } else if (mappedProducts.length > 0) {
+          setSelectedProduct(mappedProducts[0]);
+          const initCosts = calculateCosts(mappedProducts[0], (materialsData || []).map((m: any) => ({ id: m.id, name: m.name, cost: Number(m.cost_per_unit), unit: m.unit_of_measure })), {
+               laborCostPerHour: Number(settingsData?.labor_cost_per_hour || 100),
+               distributorMargin: Number(settingsData?.distributor_margin || 0.20),
+               promotionalDiscount: Number(settingsData?.promotional_discount || 0.20),
+               indirectCostReserve: Number(settingsData?.indirect_cost_reserve || 0.10)
+          });
+          setParamsForm({
+            batchSize: mappedProducts[0].batchSize.toString(),
+            productionTimeHours: mappedProducts[0].productionTimeHours.toString(),
+            targetPrice: initCosts.retailPrice.toFixed(2),
+            currentStock: mappedProducts[0].currentStock.toString()
+          });
+        }
+      }
+    } catch (e: any) {
+      console.error("loadData error:", e);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   // --- Dynamic Pricing & Local State ---
@@ -143,58 +148,70 @@ export default function ProductsPage() {
 
   const handleCreateProduct = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.from('products').insert([{
-      sku: newProductForm.sku,
-      name: newProductForm.name,
-      category: newProductForm.category,
-      batch_size: 1,
-      production_time_hours: 0,
-      target_margin: 0, // Margin is calculated dynamically later
-      company_id: profile?.company_id
-    }]).select('*, bom:bom_items(*)').single();
+    try {
+      const { data, error } = await supabase.from('products').insert([{
+        sku: newProductForm.sku,
+        name: newProductForm.name,
+        category: newProductForm.category,
+        batch_size: 1,
+        production_time_hours: 0,
+        target_margin: 0, // Margin is calculated dynamically later
+        company_id: profile?.company_id
+      }]).select('*, bom:bom_items(*)').single();
 
-    if (data) {
-      await loadData();
-      setIsNewProductOpen(false);
-    } else {
+      if (data) {
+        await loadData();
+        setIsNewProductOpen(false);
+      } else {
+        alert("Error creating product: " + (error?.message || "Unknown error"));
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert("Failed to create product. Your session may have expired.");
+    } finally {
       setIsLoading(false);
-      alert("Error creating product");
     }
   };
 
   const handleSaveChanges = async () => {
     if (!selectedProduct) return;
     setIsLoading(true);
-    
-    // The engine automatically reverse-calculated the margin based on our targetPrice!
-    const updatedMargin = costs.calculatedMargin;
-    
-    // Update Details & Params
-    const { error: pError } = await supabase.from('products').update({
-      name: selectedProduct.name,
-      sku: selectedProduct.sku,
-      category: selectedProduct.category,
-      batch_size: Number(paramsForm.batchSize),
-      production_time_hours: Number(paramsForm.productionTimeHours),
-      target_margin: updatedMargin,
-      current_stock: Number(paramsForm.currentStock)
-    }).eq('id', selectedProduct.id);
+    try {
+      // The engine automatically reverse-calculated the margin based on our targetPrice!
+      const updatedMargin = costs.calculatedMargin;
+      
+      // Update Details & Params
+      const { error: pError } = await supabase.from('products').update({
+        name: selectedProduct.name,
+        sku: selectedProduct.sku,
+        category: selectedProduct.category,
+        batch_size: Number(paramsForm.batchSize),
+        production_time_hours: Number(paramsForm.productionTimeHours),
+        target_margin: updatedMargin,
+        current_stock: Number(paramsForm.currentStock)
+      }).eq('id', selectedProduct.id);
 
-    // Sync BOMs
-    if (!pError) {
-      await supabase.from('bom_items').delete().eq('product_id', selectedProduct.id);
-      if (selectedProduct.bom.length > 0) {
-        const bomInserts = selectedProduct.bom.map((b: any) => ({
-          product_id: selectedProduct.id,
-          material_id: b.materialId,
-          quantity: b.quantity,
-          company_id: profile?.company_id
-        }));
-        const { error: bomError } = await supabase.from('bom_items').insert(bomInserts);
-        if (bomError) console.error("BOM Insert Error:", bomError);
+      // Sync BOMs
+      if (!pError) {
+        await supabase.from('bom_items').delete().eq('product_id', selectedProduct.id);
+        if (selectedProduct.bom.length > 0) {
+          const bomInserts = selectedProduct.bom.map((b: any) => ({
+            product_id: selectedProduct.id,
+            material_id: b.materialId,
+            quantity: b.quantity,
+            company_id: profile?.company_id
+          }));
+          const { error: bomError } = await supabase.from('bom_items').insert(bomInserts);
+          if (bomError) console.error("BOM Insert Error:", bomError);
+        }
       }
+      await loadData();
+    } catch (e: any) {
+      console.error(e);
+      alert("Failed to save changes. Your session may have expired.");
+    } finally {
+      setIsLoading(false);
     }
-    await loadData();
   };
 
   const handleDeleteProduct = async () => {
@@ -202,9 +219,16 @@ export default function ProductsPage() {
     if (!confirm(`Are you sure you want to completely delete "${selectedProduct.name}"? This cannot be undone.`)) return;
     
     setIsLoading(true);
-    await supabase.from('products').delete().eq('id', selectedProduct.id);
-    setSelectedProduct(null);
-    await loadData();
+    try {
+      await supabase.from('products').delete().eq('id', selectedProduct.id);
+      setSelectedProduct(null);
+      await loadData();
+    } catch (e: any) {
+      console.error(e);
+      alert("Failed to delete product. Your session may have expired.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEditDetailsSave = () => {

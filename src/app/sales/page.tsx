@@ -87,8 +87,10 @@ export default function SalesPage() {
   }, [profile?.company_id]);
 
   async function loadSales() {
-    // Load Sales with related product data
-    const { data: salesData } = await supabase.from('sales').select('*, products(name)').eq('company_id', profile?.company_id).order('created_at', { ascending: false }).limit(200);
+    setIsLoading(true);
+    try {
+      // Load Sales with related product data
+      const { data: salesData } = await supabase.from('sales').select('*, products(name)').eq('company_id', profile?.company_id).order('created_at', { ascending: false }).limit(200);
     if (salesData) {
       // Group by invoice
       const grouped: Record<string, any> = {};
@@ -176,6 +178,11 @@ export default function SalesPage() {
         }))
       }));
       setAvailableProducts(mappedProducts);
+    }
+    } catch (e: any) {
+      console.error("loadSales error:", e);
+    } finally {
+      setIsLoading(false);
     }
   }
 
