@@ -27,10 +27,13 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
               // Only override if it's not already overridden and not a gotrue-js token refresh request
               if (token && !url.toString().includes('/auth/v1/token')) {
                 options = options || {};
-                options.headers = {
-                  ...options.headers,
-                  Authorization: `Bearer ${token}`
-                };
+                const headers = new Headers(options.headers);
+                headers.set('Authorization', `Bearer ${token}`);
+                // Ensure apikey is also explicitly preserved if missing, though Headers copy should handle it
+                if (!headers.has('apikey') && supabaseKey) {
+                  headers.set('apikey', supabaseKey);
+                }
+                options.headers = headers;
               }
             }
           }
