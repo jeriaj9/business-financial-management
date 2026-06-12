@@ -47,6 +47,15 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
     );
   }
 
+  if (!profile.company_id) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
+        <h2 className="text-2xl font-bold text-destructive mb-2">No Workspace Assigned</h2>
+        <p className="text-muted-foreground mb-6 max-w-md">Your account is not linked to any company workspace. Please contact your administrator or register a new company.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-dvh w-full overflow-hidden bg-background">
       {/* Desktop Sidebar */}

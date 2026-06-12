@@ -33,7 +33,18 @@ import {
 
 export default function Home() {
   const { profile } = useAuth();
-  const { data: dashboardData, isLoading } = useDashboardData(profile?.company_id);
+  const companyId = profile?.company_id;
+  const { data: dashboardData, isLoading } = useDashboardData(companyId);
+
+  // If profile exists but company_id is missing, don't stay loading forever
+  if (profile && !companyId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+        <h2 className="text-2xl font-bold text-destructive">No Company Assigned</h2>
+        <p className="text-muted-foreground">Your account is not linked to any company workspace. Please contact your administrator.</p>
+      </div>
+    );
+  }
 
   const { chartData, productData, metrics } = useMemo(() => {
     if (!dashboardData) {
