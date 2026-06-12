@@ -80,14 +80,14 @@ export default function Home() {
 
     const productMap: Record<string, string> = {};
     if (products) {
-      products.forEach(p => productMap[p.id] = p.name);
+      products.forEach((p: any) => productMap[p.id] = p.name);
     }
 
     // Calculate Sales
     let totalRev = 0;
     let totalGP = 0;
     if (sales) {
-      sales.forEach(s => {
+      sales.forEach((s: any) => {
         totalRev += Number(s.total_revenue);
         totalGP += Number(s.gross_profit);
         
@@ -105,7 +105,7 @@ export default function Home() {
     // Calculate Expenses
     let totalExp = 0;
     if (expenses) {
-      expenses.forEach(e => {
+      expenses.forEach((e: any) => {
         totalExp += Number(e.amount);
         
         const d = new Date(e.expense_date);
