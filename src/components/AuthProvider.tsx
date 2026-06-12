@@ -27,8 +27,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    let mounted = true;
+    
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!mounted) return;
+      if (error) {
+        console.error("getSession error:", error);
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
@@ -38,10 +44,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           router.push('/login');
         }
       }
+    }).catch((err) => {
+      console.error("Auth session exception:", err);
+      if (mounted) {
+        setLoading(false);
+        if (window.location.pathname !== '/login') {
+          router.push('/login');
+        }
+      }
     });
 
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      // INITIAL_SESSION is handled by getSession to avoid race conditions. 
+      // Only handle subsequent events.
+      if (event === 'INITIAL_SESSION') return;
+      
       setUser(session?.user ?? null);
       if (session?.user) {
         await fetchProfile(session.user.id);
@@ -58,16 +77,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('user_profiles').select('*, companies(*)').eq('id', userId).single();
-    if (data) {
-      setProfile(data);
+    try {
+      const { data, error } = await supabase.from('user_profiles').select('*, companies(*)').eq('id', userId).single();
+      if (error) {
+        console.error("Supabase profile fetch error:", error);
+      }
+      if (data) {
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error("Profile fetch exception:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const signOut = async () => {

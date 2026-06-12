@@ -7,7 +7,7 @@ import { useAuth } from '@/components/AuthProvider';
 
 export function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   
   const isLoginPage = pathname === '/login';
 
@@ -30,6 +30,21 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
   // Only show dashboard layout if authenticated
   if (!user) {
     return null; // AuthProvider will redirect
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
+        <h2 className="text-2xl font-bold text-destructive mb-2">Failed to Load Workspace</h2>
+        <p className="text-muted-foreground mb-6 max-w-md">We could not load your company profile. This might be due to a temporary database issue or an expired session.</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Reload Page
+        </button>
+      </div>
+    );
   }
 
   return (
