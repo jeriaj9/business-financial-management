@@ -14,7 +14,8 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
     // Completely disable the lock mechanism to prevent multi-tab and reload deadlocks
     lock: async (name, acquire) => {
       // Just immediately acquire without waiting for other tabs or stale locks
-      return await acquire();
+      // Cast acquire to any because of a known typescript bug in gotrue-js types where it types it as Number
+      return await (acquire as any)();
     }
   }
 });
