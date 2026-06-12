@@ -12,17 +12,27 @@ const fetchDashboardData = async (companyId: string) => {
   sixMonthsAgo.setDate(1); // Start of that month
   const fromDate = sixMonthsAgo.toISOString().split('T')[0];
 
-  const [
-    { data: products },
-    { data: sales },
-    { data: expenses }
-  ] = await Promise.all([
+  const fetchPromise = Promise.all([
     supabase.from('products').select('*').eq('company_id', companyId),
     supabase.from('sales').select('*').eq('company_id', companyId).gte('sale_date', fromDate),
     supabase.from('expenses').select('*').eq('company_id', companyId).gte('expense_date', fromDate)
   ]);
+  
+  // 10 second timeout safety
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Dashboard data fetch timeout")), 10000));
+  
+  try {
+    const [
+      { data: products },
+      { data: sales },
+      { data: expenses }
+    ] = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
-  return { products, sales, expenses };
+    return { products, sales, expenses };
+  } catch (err) {
+    console.error("Dashboard fetch error:", err);
+    throw err;
+  }
 };
 
 const fetchSales = async (companyId: string, page: number, pageSize: number) => {
