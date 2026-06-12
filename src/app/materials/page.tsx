@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
+import { useMaterials } from "@/lib/hooks";
 import { Plus, Search, Filter, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,18 +44,13 @@ import {
 
 export default function MaterialsPage() {
   const { profile } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: materialsData, isLoading: isMaterialsLoading, mutate: mutateMaterials } = useMaterials(profile?.company_id);
   const [searchTerm, setSearchTerm] = useState("");
   const [materials, setMaterials] = useState<any[]>([]);
 
   useEffect(() => {
-    loadMaterials();
-  }, []);
-
-  async function loadMaterials() {
-    const { data, error } = await supabase.from('materials').select('*').order('name');
-    if (data) {
-      setMaterials(data.map(m => ({
+    if (materialsData) {
+      setMaterials(materialsData.map((m: any) => ({
         id: m.id,
         name: m.name,
         category: m.category,
@@ -65,8 +61,7 @@ export default function MaterialsPage() {
         reorder: Number(m.reorder_point)
       })));
     }
-    setIsLoading(false);
-  }
+  }, [materialsData]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
 
@@ -112,7 +107,7 @@ export default function MaterialsPage() {
         console.error("Update error:", error);
         alert(`Error saving: ${error.message}`);
       } else {
-        loadMaterials();
+        mutateMaterials();
       }
     } else {
       // Create
@@ -131,7 +126,7 @@ export default function MaterialsPage() {
         console.error("Insert error:", error);
         alert(`Error creating: ${error.message}`);
       } else {
-        loadMaterials();
+        mutateMaterials();
       }
     }
     setIsModalOpen(false);
@@ -148,10 +143,10 @@ export default function MaterialsPage() {
     }
 
     await supabase.from('materials').delete().eq('id', id);
-    loadMaterials();
+    mutateMaterials();
   };
 
-  if (isLoading) return <PageLoader />;
+  if (isMaterialsLoading) return <PageLoader />;
 
   return (
     <div className="flex flex-col gap-6 h-full">

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
+import { useDistributors } from "@/lib/hooks";
 import { Plus, Search, Filter, MoreHorizontal, FileText, Phone, Mail, Eye, DollarSign, TrendingUp, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,7 @@ import {
 
 export default function DistributorsPage() {
   const { profile } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: distributorsData, isLoading: isDistributorsLoading, mutate: mutateDistributors } = useDistributors(profile?.company_id);
   const [searchTerm, setSearchTerm] = useState("");
   const [distributors, setDistributors] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -57,13 +58,8 @@ export default function DistributorsPage() {
   const [formData, setFormData] = useState({ name: "", contact: "", email: "", phone: "", tier: "Standard" });
 
   useEffect(() => {
-    loadDistributors();
-  }, []);
-
-  async function loadDistributors() {
-    const { data } = await supabase.from('distributors').select('*, sales(*)').order('name');
-    if (data) {
-      setDistributors(data.map(d => {
+    if (distributorsData) {
+      setDistributors(distributorsData.map((d: any) => {
         let totalRevenue = 0;
         let totalProfit = 0;
         const uniqueOrders = new Set();
@@ -108,8 +104,7 @@ export default function DistributorsPage() {
         };
       }));
     }
-    setIsLoading(false);
-  }
+  }, [distributorsData]);
 
   const handleEditClick = (distributor: any) => {
     setEditingDistributorId(distributor.id);
@@ -126,7 +121,7 @@ export default function DistributorsPage() {
   const handleDeleteDistributor = async (id: string) => {
     if (!confirm("Are you sure you want to delete this distributor? All associated sales will lose their distributor link.")) return;
     const { error } = await supabase.from('distributors').delete().eq('id', id);
-    if (!error) loadDistributors();
+    if (!error) mutateDistributors();
     else alert(`Error deleting distributor: ${error.message}`);
   };
 
@@ -139,7 +134,7 @@ export default function DistributorsPage() {
         phone: formData.phone,
         pricing_tier: formData.tier
       }).eq('id', editingDistributorId);
-      if (!error) loadDistributors();
+      if (!error) mutateDistributors();
     } else {
       const { error } = await supabase.from('distributors').insert([{
         name: formData.name,
@@ -150,7 +145,7 @@ export default function DistributorsPage() {
         outstanding_balance: 0,
         company_id: profile?.company_id
       }]);
-      if (!error) loadDistributors();
+      if (!error) mutateDistributors();
     }
     
     setIsAddOpen(false);
@@ -160,7 +155,7 @@ export default function DistributorsPage() {
 
   const totalOutstanding = distributors.reduce((sum, d) => sum + d.balance, 0);
 
-  if (isLoading) return <PageLoader />;
+  if (isDistributorsLoading) return <PageLoader />;
 
   return (
     <div className="flex flex-col gap-6 h-full">

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
+import { usePaginatedSales } from "@/lib/hooks";
 import { Plus, Search, Filter, DollarSign, TrendingUp, ShoppingBag, Store, Trash2, MoreHorizontal, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,12 +51,15 @@ import { calculateCosts, GlobalSettings, Material, Product } from "@/lib/pricing
 export default function SalesPage() {
   const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const { data: paginatedData, isLoading: isSalesLoading, mutate: mutateSales } = usePaginatedSales(profile?.company_id, page, 20);
+  
   // sales will now hold grouped invoices
   const [sales, setSales] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [viewDetailsInvoice, setViewDetailsInvoice] = useState<any>(null);
   const [editingInvoiceNumber, setEditingInvoiceNumber] = useState<string | null>(null);
+  const [isSupportingDataLoading, setIsSupportingDataLoading] = useState(true);
   
   // Data for pricing engine
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
@@ -81,31 +85,20 @@ export default function SalesPage() {
   const [cartItems, setCartItems] = useState<{productId: string, quantity: number}[]>([{productId: "", quantity: 1}]);
 
   useEffect(() => {
-    if (profile?.company_id) {
-      loadSales();
-    }
-  }, [profile?.company_id]);
-
-  async function loadSales() {
-    setIsLoading(true);
-    try {
-      // Load Sales with related product data
-      const { data: salesData } = await supabase.from('sales').select('*, products(name)').eq('company_id', profile?.company_id).order('created_at', { ascending: false }).limit(200);
-    if (salesData) {
-      // Group by invoice
+    if (paginatedData?.data) {
       const grouped: Record<string, any> = {};
-      salesData.forEach(s => {
+      paginatedData.data.forEach((s: any) => {
         const inv = s.invoice_number || s.id;
         if (!grouped[inv]) {
           grouped[inv] = {
-            id: s.id, // Primary key of one row just for react key
+            id: s.id,
             invoice: s.invoice_number || '-',
             date: s.sale_date,
             channel: s.channel,
             customer: s.customer_name || "",
             distributorId: s.distributor_id || "",
             status: s.payment_status,
-            items: [], // Line items array
+            items: [],
             totalRevenue: 0,
             totalCogs: 0,
             totalItems: 0,
@@ -130,59 +123,69 @@ export default function SalesPage() {
       const sortedSales = Object.values(grouped).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setSales(sortedSales);
     }
+  }, [paginatedData]);
 
-    // Load Settings
-    const { data: settingsData } = await supabase.from('settings').select('*').eq('company_id', profile?.company_id).limit(1).single();
-    if (settingsData) {
-      setGlobalSettings({
-        laborCostPerHour: Number(settingsData.labor_cost_per_hour),
-        distributorMargin: Number(settingsData.distributor_margin),
-        promotionalDiscount: Number(settingsData.promotional_discount),
-        indirectCostReserve: Number(settingsData.indirect_cost_reserve)
-      });
+  useEffect(() => {
+    if (profile?.company_id) {
+      loadSupportingData();
     }
+  }, [profile?.company_id]);
 
-    // Load Distributors
-    const { data: distributorsData } = await supabase.from('distributors').select('*').eq('company_id', profile?.company_id).order('name');
-    if (distributorsData) {
-      setAvailableDistributors(distributorsData);
-    }
+  async function loadSupportingData() {
+    setIsSupportingDataLoading(true);
+    try {
+      // Load Settings
+      const { data: settingsData } = await supabase.from('settings').select('*').eq('company_id', profile?.company_id).limit(1).single();
+      if (settingsData) {
+        setGlobalSettings({
+          laborCostPerHour: Number(settingsData.labor_cost_per_hour),
+          distributorMargin: Number(settingsData.distributor_margin),
+          promotionalDiscount: Number(settingsData.promotional_discount),
+          indirectCostReserve: Number(settingsData.indirect_cost_reserve)
+        });
+      }
 
-    // Load Materials
-    const { data: materialsData } = await supabase.from('materials').select('*').eq('company_id', profile?.company_id);
-    if (materialsData) {
-      setAvailableMaterials(materialsData.map((m: any) => ({
-        id: m.id,
-        name: m.name,
-        cost: Number(m.cost_per_unit),
-        unit: m.unit_of_measure
-      })));
-    }
+      // Load Distributors
+      const { data: distributorsData } = await supabase.from('distributors').select('*').eq('company_id', profile?.company_id).order('name');
+      if (distributorsData) {
+        setAvailableDistributors(distributorsData);
+      }
 
-    // Load Products with BOM
-    const { data: productsData } = await supabase.from('products').select('*, bom:bom_items(*)').eq('company_id', profile?.company_id).order('name');
-    if (productsData) {
-      const mappedProducts = productsData.map((p: any) => ({
-        id: p.id,
-        sku: p.sku || "",
-        name: p.name,
-        category: p.category || "",
-        batchSize: Number(p.batch_size),
-        productionTimeHours: Number(p.production_time_hours),
-        targetMargin: Number(p.target_margin),
-        currentStock: Number(p.current_stock || 0),
-        bom: p.bom.map((b: any) => ({
-          id: b.id,
-          materialId: b.material_id,
-          quantity: Number(b.quantity)
-        }))
-      }));
-      setAvailableProducts(mappedProducts);
-    }
+      // Load Materials
+      const { data: materialsData } = await supabase.from('materials').select('*').eq('company_id', profile?.company_id);
+      if (materialsData) {
+        setAvailableMaterials(materialsData.map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          cost: Number(m.cost_per_unit),
+          unit: m.unit_of_measure
+        })));
+      }
+
+      // Load Products with BOM
+      const { data: productsData } = await supabase.from('products').select('*, bom:bom_items(*)').eq('company_id', profile?.company_id).order('name');
+      if (productsData) {
+        const mappedProducts = productsData.map((p: any) => ({
+          id: p.id,
+          sku: p.sku || "",
+          name: p.name,
+          category: p.category || "",
+          batchSize: Number(p.batch_size),
+          productionTimeHours: Number(p.production_time_hours),
+          targetMargin: Number(p.target_margin),
+          currentStock: Number(p.current_stock || 0),
+          bom: p.bom.map((b: any) => ({
+            id: b.id,
+            materialId: b.material_id,
+            quantity: Number(b.quantity)
+          }))
+        }));
+        setAvailableProducts(mappedProducts);
+      }
     } catch (e: any) {
-      console.error("loadSales error:", e);
+      console.error("loadSupportingData error:", e);
     } finally {
-      setIsLoading(false);
+      setIsSupportingDataLoading(false);
     }
   }
 
@@ -232,7 +235,7 @@ export default function SalesPage() {
       console.error('Error reversing sale:', error);
       alert(`Error deleting invoice: ${error.message}`);
     } else {
-      loadSales();
+      mutateSales();
     }
   };
 
@@ -300,7 +303,7 @@ export default function SalesPage() {
       });
 
       if (!error) {
-        loadSales();
+        mutateSales();
       } else {
         console.error("Sale insert error:", error);
         alert(`Error registering sale: ${error.message}`);
@@ -622,9 +625,16 @@ export default function SalesPage() {
           </Button>
         </div>
         
-        <div className="relative w-full overflow-y-auto">
-          <Table className="min-w-[800px] lg:min-w-full">
-            <TableHeader className="bg-muted/50 sticky top-0 z-10">
+        {isSalesLoading || isSupportingDataLoading ? (
+          <div className="p-8 text-center text-muted-foreground flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-2"></div>
+            Loading sales...
+          </div>
+        ) : (
+          <>
+            <div className="relative w-full overflow-y-auto">
+              <Table className="min-w-[800px] lg:min-w-full">
+                <TableHeader className="bg-muted/50 sticky top-0 z-10">
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Invoice</TableHead>
@@ -696,10 +706,24 @@ export default function SalesPage() {
                   </TableRow>
                 );
               })}
-            </TableBody>
-          </Table>
-        </div>
+              </TableBody>
+            </Table>
+          </div>
+          <div className="p-4 border-t flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing page {page + 1}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={!paginatedData?.data || paginatedData.data.length < 20}>
+                Next
+              </Button>
+            </div>
+          </div>
+        </>
+        )}
       </div>
-    </div>
-  );
+    </div>);
 }

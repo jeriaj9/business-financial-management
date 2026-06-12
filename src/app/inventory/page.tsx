@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
+import { useMaterials, useProducts, useInventoryTransactions } from "@/lib/hooks";
 import { PageLoader } from "@/components/PageLoader";
 import { ArrowDownRight, ArrowUpRight, Box, Boxes, PackageSearch } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,72 +26,69 @@ export default function InventoryPage() {
   const [lowStockItems, setLowStockItems] = useState<any[]>([]);
   const [productInventory, setProductInventory] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { profile } = useAuth();
+  const { data: materialsData, isLoading: isMaterialsLoading } = useMaterials(profile?.company_id);
+  const { data: productsData, isLoading: isProductsLoading } = useProducts(profile?.company_id);
+  const { data: txsData, isLoading: isTxsLoading } = useInventoryTransactions(profile?.company_id);
+  
+  const isLoading = isMaterialsLoading || isProductsLoading || isTxsLoading;
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        // Fetch materials
-        const { data: materials } = await supabase.from('materials').select('*');
-        let mValue = 0;
-        let lowItems: any[] = [];
-        if (materials) {
-          materials.forEach(m => {
-            mValue += Number(m.cost_per_unit) * Number(m.current_stock);
-            if (Number(m.current_stock) <= Number(m.reorder_point)) {
-              lowItems.push({
-                name: m.name,
-                current: Number(m.current_stock),
-                reorder: Number(m.reorder_point),
-                unit: m.unit_of_measure,
-                type: "Material"
-              });
-            }
-          });
-        }
-
-        // Fetch products
-        const { data: products } = await supabase.from('products').select('*');
-        let pValue = 0;
-        if (products) {
-          products.forEach(p => {
-            pValue += Number(p.total_cost) * Number(p.current_stock);
-          });
-          setProductInventory(products);
-        }
-        
-        setMetrics({
-          lowStockCount: lowItems.length,
-          materialsValue: mValue,
-          productsValue: pValue
+    try {
+      // Process materials
+      let mValue = 0;
+      let lowItems: any[] = [];
+      if (materialsData) {
+        materialsData.forEach((m: any) => {
+          mValue += Number(m.cost_per_unit) * Number(m.current_stock);
+          if (Number(m.current_stock) <= Number(m.reorder_point)) {
+            lowItems.push({
+              name: m.name,
+              current: Number(m.current_stock),
+              reorder: Number(m.reorder_point),
+              unit: m.unit_of_measure,
+              type: "Material"
+            });
+          }
         });
-        setLowStockItems(lowItems);
-
-        // Fetch transactions
-        const { data: txs } = await supabase.from('inventory_transactions').select('*').order('created_at', { ascending: false }).limit(200);
-        if (txs) {
-          const allItems = [...(materials || []), ...(products || [])];
-          const mappedTxs = txs.map(tx => {
-            const matchedItem = allItems.find(i => i.id === tx.item_id);
-            return {
-              id: tx.id,
-              date: new Date(tx.created_at).toLocaleDateString(),
-              item: matchedItem ? matchedItem.name : "Unknown Item",
-              type: tx.transaction_type,
-              qty: Number(tx.quantity),
-              reference: tx.reference_id || "System"
-            }
-          });
-          setTransactions(mappedTxs);
-        }
-      } catch (e: any) {
-        console.error("loadData error:", e);
-      } finally {
-        setIsLoading(false);
       }
+
+      // Process products
+      let pValue = 0;
+      if (productsData) {
+        productsData.forEach((p: any) => {
+          pValue += Number(p.total_cost || 0) * Number(p.current_stock || 0);
+        });
+        setProductInventory(productsData);
+      }
+      
+      setMetrics({
+        lowStockCount: lowItems.length,
+        materialsValue: mValue,
+        productsValue: pValue
+      });
+      setLowStockItems(lowItems);
+
+      // Process transactions
+      if (txsData) {
+        const allItems = [...(materialsData || []), ...(productsData || [])];
+        const mappedTxs = txsData.map((tx: any) => {
+          const matchedItem = allItems.find((i: any) => i.id === tx.item_id);
+          return {
+            id: tx.id,
+            date: new Date(tx.created_at).toLocaleDateString(),
+            item: matchedItem ? matchedItem.name : "Unknown Item",
+            type: tx.transaction_type,
+            qty: Number(tx.quantity),
+            reference: tx.reference_id || "System"
+          }
+        });
+        setTransactions(mappedTxs);
+      }
+    } catch (e: any) {
+      console.error("loadData error:", e);
     }
-    loadData();
-  }, []);
+  }, [materialsData, productsData, txsData]);
 
   if (isLoading) return <PageLoader />;
 

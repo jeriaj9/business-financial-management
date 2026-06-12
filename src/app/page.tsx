@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { useState, useMemo } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { useDashboardData } from "@/lib/hooks";
 import { PageLoader } from "@/components/PageLoader";
 import {
   Card,
@@ -31,90 +32,89 @@ import {
 } from 'recharts';
 
 export default function Home() {
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [productData, setProductData] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState({
-    totalRevenue: 0,
-    grossProfit: 0,
-    totalExpenses: 0,
-    netProfitMargin: 0,
-    netIncome: 0,
-    breakEvenRevenue: 0,
-    breakEvenProgress: 0,
-    averageMarginPercent: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const { profile } = useAuth();
+  const { data: dashboardData, isLoading } = useDashboardData(profile?.company_id);
 
-  useEffect(() => {
-    async function loadDashboard() {
-      // Initialize last 6 months
-      const monthly: Record<string, {name: string, revenue: number, expenses: number, monthId: string}> = {};
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        const mName = d.toLocaleString('default', { month: 'short' });
+  const { chartData, productData, metrics } = useMemo(() => {
+    if (!dashboardData) {
+      return {
+        chartData: [],
+        productData: [],
+        metrics: {
+          totalRevenue: 0,
+          grossProfit: 0,
+          totalExpenses: 0,
+          netProfitMargin: 0,
+          netIncome: 0,
+          breakEvenRevenue: 0,
+          breakEvenProgress: 0,
+          averageMarginPercent: 0
+        }
+      };
+    }
+
+    const { products, sales, expenses } = dashboardData;
+
+    // Initialize last 6 months
+    const monthly: Record<string, {name: string, revenue: number, expenses: number, monthId: string}> = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const mName = d.toLocaleString('default', { month: 'short' });
+      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthly[mKey] = { name: mName, revenue: 0, expenses: 0, monthId: mKey };
+    }
+
+    const prodPerf: Record<string, {name: string, sales: number, profit: number}> = {};
+
+    const productMap: Record<string, string> = {};
+    if (products) {
+      products.forEach(p => productMap[p.id] = p.name);
+    }
+
+    // Calculate Sales
+    let totalRev = 0;
+    let totalGP = 0;
+    if (sales) {
+      sales.forEach(s => {
+        totalRev += Number(s.total_revenue);
+        totalGP += Number(s.gross_profit);
+        
+        const d = new Date(s.sale_date);
         const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        monthly[mKey] = { name: mName, revenue: 0, expenses: 0, monthId: mKey };
-      }
+        if (monthly[mKey]) monthly[mKey].revenue += Number(s.total_revenue);
 
-      const prodPerf: Record<string, {name: string, sales: number, profit: number}> = {};
+        const pName = (s.product_id && productMap[s.product_id]) ? productMap[s.product_id] : (s.channel === 'B2B' ? 'Wholesale Bundle' : 'Custom Item');
+        if (!prodPerf[pName]) prodPerf[pName] = { name: pName, sales: 0, profit: 0 };
+        prodPerf[pName].sales += Number(s.quantity);
+        prodPerf[pName].profit += Number(s.gross_profit);
+      });
+    }
 
-      // FETCH ALL DATA IN PARALLEL (Massive Performance Boost)
-      const [
-        { data: products },
-        { data: sales },
-        { data: expenses }
-      ] = await Promise.all([
-        supabase.from('products').select('*'),
-        supabase.from('sales').select('*'),
-        supabase.from('expenses').select('*')
-      ]);
+    // Calculate Expenses
+    let totalExp = 0;
+    if (expenses) {
+      expenses.forEach(e => {
+        totalExp += Number(e.amount);
+        
+        const d = new Date(e.expense_date);
+        const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (monthly[mKey]) monthly[mKey].expenses += Number(e.amount);
+      });
+    }
 
-      const productMap: Record<string, string> = {};
-      if (products) {
-        products.forEach(p => productMap[p.id] = p.name);
-      }
+    // Calculate Metrics
+    const netInc = totalGP - totalExp;
+    const netMargin = totalRev > 0 ? (netInc / totalRev) * 100 : 0;
+    const avgContMargin = totalRev > 0 ? (totalGP / totalRev) : 0;
+    
+    const beRev = avgContMargin > 0 ? (totalExp / avgContMargin) : 0;
+    const beProgress = beRev > 0 ? Math.min((totalRev / beRev) * 100, 100) : 0;
 
-      // Calculate Sales
-      let totalRev = 0;
-      let totalGP = 0;
-      if (sales) {
-        sales.forEach(s => {
-          totalRev += Number(s.total_revenue);
-          totalGP += Number(s.gross_profit);
-          
-          const d = new Date(s.sale_date);
-          const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          if (monthly[mKey]) monthly[mKey].revenue += Number(s.total_revenue);
-
-          const pName = (s.product_id && productMap[s.product_id]) ? productMap[s.product_id] : (s.channel === 'B2B' ? 'Wholesale Bundle' : 'Custom Item');
-          if (!prodPerf[pName]) prodPerf[pName] = { name: pName, sales: 0, profit: 0 };
-          prodPerf[pName].sales += Number(s.quantity);
-          prodPerf[pName].profit += Number(s.gross_profit);
-        });
-      }
-
-      // Calculate Expenses
-      let totalExp = 0;
-      if (expenses) {
-        expenses.forEach(e => {
-          totalExp += Number(e.amount);
-          
-          const d = new Date(e.expense_date);
-          const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          if (monthly[mKey]) monthly[mKey].expenses += Number(e.amount);
-        });
-      }
-
-      // Calculate Metrics
-      const netInc = totalGP - totalExp;
-      const netMargin = totalRev > 0 ? (netInc / totalRev) * 100 : 0;
-      const avgContMargin = totalRev > 0 ? (totalGP / totalRev) : 0;
-      
-      const beRev = avgContMargin > 0 ? (totalExp / avgContMargin) : 0;
-      const beProgress = beRev > 0 ? Math.min((totalRev / beRev) * 100, 100) : 0;
-
-      setMetrics({
+    return {
+      chartData: Object.values(monthly),
+      productData: Object.values(prodPerf).sort((a, b) => b.sales - a.sales).slice(0, 5),
+      metrics: {
         totalRevenue: totalRev,
         grossProfit: totalGP,
         totalExpenses: totalExp,
@@ -123,15 +123,9 @@ export default function Home() {
         breakEvenRevenue: beRev,
         breakEvenProgress: beProgress,
         averageMarginPercent: avgContMargin * 100
-      });
-
-      setChartData(Object.values(monthly));
-      setProductData(Object.values(prodPerf).sort((a, b) => b.sales - a.sales).slice(0, 5));
-      setIsLoading(false);
-    }
-
-    loadDashboard();
-  }, []);
+      }
+    };
+  }, [dashboardData]);
 
   if (isLoading) return <PageLoader />;
 

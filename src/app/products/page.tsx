@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
+import { useProducts, useMaterials, useSettings } from "@/lib/hooks";
 import { Plus, Search, Filter, PackageOpen, ArrowRight, DollarSign, ListPlus, Calculator, Pencil, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,12 @@ import { calculateCosts, GlobalSettings, Material } from "@/lib/pricing";
 
 export default function ProductsPage() {
   const { profile } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: settingsData, isLoading: isSettingsLoading } = useSettings(profile?.company_id);
+  const { data: materialsData, isLoading: isMaterialsLoading } = useMaterials(profile?.company_id);
+  const { data: productsData, isLoading: isProductsLoading, mutate: mutateProducts } = useProducts(profile?.company_id);
+  
+  const isLoading = isSettingsLoading || isMaterialsLoading || isProductsLoading;
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -47,34 +53,29 @@ export default function ProductsPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (settingsData) {
+      setGlobalSettings({
+        laborCostPerHour: Number(settingsData.labor_cost_per_hour),
+        distributorMargin: Number(settingsData.distributor_margin),
+        promotionalDiscount: Number(settingsData.promotional_discount),
+        indirectCostReserve: Number(settingsData.indirect_cost_reserve)
+      });
+    }
+  }, [settingsData]);
 
-  async function loadData() {
-    setIsLoading(true);
-    try {
-      const { data: settingsData } = await supabase.from('settings').select('*').limit(1).single();
-      if (settingsData) {
-        setGlobalSettings({
-          laborCostPerHour: Number(settingsData.labor_cost_per_hour),
-          distributorMargin: Number(settingsData.distributor_margin),
-          promotionalDiscount: Number(settingsData.promotional_discount),
-          indirectCostReserve: Number(settingsData.indirect_cost_reserve)
-        });
-      }
+  useEffect(() => {
+    if (materialsData) {
+      setAvailableMaterials(materialsData.map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        cost: Number(m.cost_per_unit),
+        unit: m.unit_of_measure
+      })));
+    }
+  }, [materialsData]);
 
-      const { data: materialsData } = await supabase.from('materials').select('*');
-      if (materialsData) {
-        setAvailableMaterials(materialsData.map((m: any) => ({
-          id: m.id,
-          name: m.name,
-          cost: Number(m.cost_per_unit),
-          unit: m.unit_of_measure
-        })));
-      }
-
-      const { data: productsData } = await supabase.from('products').select('*, bom:bom_items(*)').order('name');
-      if (productsData) {
+  useEffect(() => {
+    if (productsData) {
         const mappedProducts = productsData.map((p: any) => ({
           id: p.id,
           sku: p.sku || "",
@@ -82,7 +83,7 @@ export default function ProductsPage() {
           category: p.category || "",
           batchSize: Number(p.batch_size),
           productionTimeHours: Number(p.production_time_hours),
-          targetMargin: Number(p.target_margin), // Keep for initial cost calc
+          targetMargin: Number(p.target_margin),
           currentStock: Number(p.current_stock || 0),
           bom: p.bom.map((b: any) => ({
             id: b.id,
@@ -92,12 +93,11 @@ export default function ProductsPage() {
         }));
         setProducts(mappedProducts);
         
-        // Keep selection if it exists, else select first
         if (selectedProduct) {
-          const found = mappedProducts.find(p => p.id === selectedProduct.id);
+          const found = mappedProducts.find((p: any) => p.id === selectedProduct.id);
           if (found) {
              setSelectedProduct(found);
-             const initCosts = calculateCosts(found, (materialsData || []).map((m: any) => ({ id: m.id, name: m.name, cost: Number(m.cost_per_unit), unit: m.unit_of_measure })), {
+             const initCosts = calculateCosts(found, availableMaterials.length > 0 ? availableMaterials : (materialsData || []).map((m: any) => ({ id: m.id, name: m.name, cost: Number(m.cost_per_unit), unit: m.unit_of_measure })), {
                laborCostPerHour: Number(settingsData?.labor_cost_per_hour || 100),
                distributorMargin: Number(settingsData?.distributor_margin || 0.20),
                promotionalDiscount: Number(settingsData?.promotional_discount || 0.20),
@@ -112,7 +112,7 @@ export default function ProductsPage() {
           }
         } else if (mappedProducts.length > 0) {
           setSelectedProduct(mappedProducts[0]);
-          const initCosts = calculateCosts(mappedProducts[0], (materialsData || []).map((m: any) => ({ id: m.id, name: m.name, cost: Number(m.cost_per_unit), unit: m.unit_of_measure })), {
+          const initCosts = calculateCosts(mappedProducts[0], availableMaterials.length > 0 ? availableMaterials : (materialsData || []).map((m: any) => ({ id: m.id, name: m.name, cost: Number(m.cost_per_unit), unit: m.unit_of_measure })), {
                laborCostPerHour: Number(settingsData?.labor_cost_per_hour || 100),
                distributorMargin: Number(settingsData?.distributor_margin || 0.20),
                promotionalDiscount: Number(settingsData?.promotional_discount || 0.20),
@@ -125,13 +125,8 @@ export default function ProductsPage() {
             currentStock: mappedProducts[0].currentStock.toString()
           });
         }
-      }
-    } catch (e: any) {
-      console.error("loadData error:", e);
-    } finally {
-      setIsLoading(false);
     }
-  }
+  }, [productsData, settingsData, materialsData]);
 
   // --- Dynamic Pricing & Local State ---
   
@@ -147,7 +142,6 @@ export default function ProductsPage() {
   // --- Actions ---
 
   const handleCreateProduct = async () => {
-    setIsLoading(true);
     try {
       const { data, error } = await supabase.from('products').insert([{
         sku: newProductForm.sku,
@@ -160,7 +154,7 @@ export default function ProductsPage() {
       }]).select('*, bom:bom_items(*)').single();
 
       if (data) {
-        await loadData();
+        mutateProducts();
         setIsNewProductOpen(false);
       } else {
         alert("Error creating product: " + (error?.message || "Unknown error"));
@@ -168,14 +162,11 @@ export default function ProductsPage() {
     } catch (e: any) {
       console.error(e);
       alert("Failed to create product. Your session may have expired.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleSaveChanges = async () => {
     if (!selectedProduct) return;
-    setIsLoading(true);
     try {
       // The engine automatically reverse-calculated the margin based on our targetPrice!
       const updatedMargin = costs.calculatedMargin;
@@ -205,12 +196,10 @@ export default function ProductsPage() {
           if (bomError) console.error("BOM Insert Error:", bomError);
         }
       }
-      await loadData();
+      mutateProducts();
     } catch (e: any) {
       console.error(e);
       alert("Failed to save changes. Your session may have expired.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -218,16 +207,13 @@ export default function ProductsPage() {
     if (!selectedProduct) return;
     if (!confirm(`Are you sure you want to completely delete "${selectedProduct.name}"? This cannot be undone.`)) return;
     
-    setIsLoading(true);
     try {
       await supabase.from('products').delete().eq('id', selectedProduct.id);
       setSelectedProduct(null);
-      await loadData();
+      mutateProducts();
     } catch (e: any) {
       console.error(e);
       alert("Failed to delete product. Your session may have expired.");
-    } finally {
-      setIsLoading(false);
     }
   };
 

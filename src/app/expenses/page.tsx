@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
+import { usePaginatedExpenses } from "@/lib/hooks";
 import { PageLoader } from "@/components/PageLoader";
 import { Plus, Search, Filter, DollarSign, TrendingDown, Receipt, Calendar, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,21 +52,18 @@ import {
 export default function ExpensesPage() {
   const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const { data: paginatedData, isLoading: isExpensesLoading, mutate: mutateExpenses } = usePaginatedExpenses(profile?.company_id, page, 20);
+  
   const [expenses, setExpenses] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [viewDetailsExpense, setViewDetailsExpense] = useState<any>(null);
   const [formData, setFormData] = useState({ date: new Date().toISOString().split('T')[0], category: "", description: "", amount: "", reference: "" });
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadExpenses();
-  }, []);
-
-  async function loadExpenses() {
-    const { data } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false }).limit(200);
-    if (data) {
-      setExpenses(data.map(e => ({
+    if (paginatedData?.data) {
+      setExpenses(paginatedData.data.map((e: any) => ({
         id: e.id,
         date: e.expense_date,
         category: e.category,
@@ -74,8 +72,7 @@ export default function ExpensesPage() {
         reference: e.reference || ""
       })));
     }
-    setIsLoading(false);
-  }
+  }, [paginatedData]);
 
   const handleEditClick = (expense: any) => {
     setEditingExpenseId(expense.id);
@@ -92,7 +89,7 @@ export default function ExpensesPage() {
   const handleDeleteExpense = async (id: string) => {
     if (!confirm("Are you sure you want to delete this expense?")) return;
     const { error } = await supabase.from('expenses').delete().eq('id', id);
-    if (!error) loadExpenses();
+    if (!error) mutateExpenses();
     else alert(`Error deleting expense: ${error.message}`);
   };
 
@@ -106,7 +103,7 @@ export default function ExpensesPage() {
         vendor: formData.reference
       }).eq('id', editingExpenseId);
       
-      if (!error) loadExpenses();
+      if (!error) mutateExpenses();
     } else {
       const { error } = await supabase.from('expenses').insert([{
         expense_date: formData.date,
@@ -117,7 +114,7 @@ export default function ExpensesPage() {
         company_id: profile?.company_id
       }]);
 
-      if (!error) loadExpenses();
+      if (!error) mutateExpenses();
     }
 
     setIsAddOpen(false);
@@ -127,7 +124,7 @@ export default function ExpensesPage() {
 
   const totalMonthly = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  if (isLoading) return <PageLoader />;
+  if (isExpensesLoading && page === 0) return <PageLoader />;
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -281,9 +278,16 @@ export default function ExpensesPage() {
           </Button>
         </div>
         
-        <div className="relative w-full overflow-auto">
-          <Table className="min-w-[800px] lg:min-w-full">
-            <TableHeader className="bg-muted/50">
+        {isExpensesLoading ? (
+          <div className="p-8 text-center text-muted-foreground flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-2"></div>
+            Loading expenses...
+          </div>
+        ) : (
+          <>
+            <div className="relative w-full overflow-auto">
+              <Table className="min-w-[800px] lg:min-w-full">
+                <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Category</TableHead>
@@ -333,11 +337,26 @@ export default function ExpensesPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="p-4 border-t flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing page {page + 1}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={!paginatedData?.data || paginatedData.data.length < 20}>
+                Next
+              </Button>
+            </div>
+          </div>
+        </>
+        )}
       </div>
     </div>
   );
