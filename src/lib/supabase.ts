@@ -12,17 +12,33 @@ const isBrowser = typeof window !== 'undefined';
 // Fallback to dummy strings to prevent the entire JS bundle from crashing,
 // but auth and db calls will fail if they are missing.
 export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder', {
-  auth: {
-    ...(isBrowser ? {
-      lock: async (name, acquire) => {
-        // Completely disable the lock mechanism to prevent multi-tab and reload deadlocks
-        // Cast to any to avoid TS errors
-        const acquireFn = acquire as any;
-        if (typeof acquireFn === 'function') {
-          return await acquireFn();
+  global: {
+    fetch: async (url, options) => {
+      // Manually inject Authorization header if we have a token in localStorage to bypass gotrue-js deadlocks
+      if (typeof window !== 'undefined') {
+        try {
+          const projectId = supabaseUrl?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+          const storageKey = projectId ? `sb-${projectId}-auth-token` : null;
+          if (storageKey) {
+            const sessionStr = window.localStorage.getItem(storageKey);
+            if (sessionStr) {
+              const sessionObj = JSON.parse(sessionStr);
+              const token = sessionObj?.access_token;
+              // Only override if it's not already overridden and not a gotrue-js token refresh request
+              if (token && !url.toString().includes('/auth/v1/token')) {
+                options = options || {};
+                options.headers = {
+                  ...options.headers,
+                  Authorization: `Bearer ${token}`
+                };
+              }
+            }
+          }
+        } catch (e) {
+          // Ignore parse errors
         }
-        return null;
       }
-    } : {})
+      return fetch(url, options);
+    }
   }
 });
