@@ -37,37 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }, 5000);
     
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (!mounted) return;
-      if (error) {
-        console.error("getSession error:", error);
-      }
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-        if (window.location.pathname !== '/login') {
-          router.push('/login');
-        }
-      }
-    }).catch((err) => {
-      console.error("Auth session exception:", err);
-      if (mounted) {
-        setLoading(false);
-        if (window.location.pathname !== '/login') {
-          router.push('/login');
-        }
-      }
-    });
+    let isResolved = false;
 
-    // Listen for changes on auth state (sign in, sign out, etc.)
+    // Use onAuthStateChange as the single source of truth to avoid Strict Mode getSession deadlocks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-      // INITIAL_SESSION is handled by getSession to avoid race conditions. 
-      // Only handle subsequent events.
-      if (event === 'INITIAL_SESSION') return;
+      isResolved = true;
       
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -84,9 +59,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Fallback: if onAuthStateChange doesn't fire INITIAL_SESSION quickly (e.g. Supabase client bug), manually check
+    const fallbackTimer = setTimeout(async () => {
+      if (mounted && !isResolved) {
+        console.warn("Auth state change took too long. Forcing session check.");
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted && !isResolved) {
+          isResolved = true;
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+            if (window.location.pathname === '/login') router.push('/');
+          } else {
+            setLoading(false);
+            if (window.location.pathname !== '/login') router.push('/login');
+          }
+        }
+      }
+    }, 1000);
+
     return () => {
       mounted = false;
       clearTimeout(safetyTimeout);
+      clearTimeout(fallbackTimer);
       subscription.unsubscribe();
     };
   }, []);
