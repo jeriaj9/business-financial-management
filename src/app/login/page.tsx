@@ -3,10 +3,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Building2, Mail, Lock, User as UserIcon } from 'lucide-react';
 
 export default function LoginPage() {
@@ -46,7 +42,7 @@ export default function LoginPage() {
           // Generate the ID client-side so we don't have to rely on .select()
           // because RLS will block the .select() since the user_profile isn't created yet!
           finalCompanyId = crypto.randomUUID();
-          
+
           // 2. Create the Company without returning it
           const { error: companyError } = await supabase.from('companies').insert([{
             id: finalCompanyId,
@@ -91,96 +87,161 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center">
-              <Building2 className="h-6 w-6 text-primary-foreground" />
-            </div>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-6 bg-gradient-to-br from-gray-900 via-blue-950 to-black font-sans selection:bg-[#0f172a]/20 select-none">
+      <div className="w-full max-w-sm flex flex-col items-center py-12">
+        {/* Top Divider */}
+        <hr className="w-full border-white/60 mb-10" />
+
+        {/* Title */}
+        <h1 className="text-3xl font-light tracking-[0.25em] text-center uppercase mb-10">
+          {isRegistering ? 'User Register' : 'User Login'}
+        </h1>
+
+        {/* Error Notification */}
+        {error && (
+          <div className="w-full mb-6 p-3 bg-red-500/10 border-l-2 border-red-500 text-red-700 text-xs tracking-wide font-medium">
+            {error}
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            {isRegistering ? 'Create your workspace' : 'Welcome back'}
-          </CardTitle>
-          <CardDescription>
-            {isRegistering 
-              ? 'Setup your brand and start managing your finances' 
-              : 'Enter your credentials to access your account'}
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleAuth}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-md">
-                {error}
-              </div>
-            )}
-            
-            {isRegistering && (
-              <>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="company">{joinMode ? 'Organization ID (Join Code)' : 'Company / Brand Name'}</Label>
-                    <button 
-                      type="button" 
-                      onClick={() => setJoinMode(!joinMode)}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      {joinMode ? 'Create new company instead' : 'Have a join code?'}
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    {joinMode ? (
-                      <Input id="company" required className="pl-9" placeholder="Paste ID here" value={joinCode} onChange={e => setJoinCode(e.target.value)} />
-                    ) : (
-                      <Input id="company" required className="pl-9" placeholder="Acme Corp" value={companyName} onChange={e => setCompanyName(e.target.value)} />
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <div className="relative">
-                    <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input id="name" required className="pl-9" placeholder="John Doe" value={fullName} onChange={e => setFullName(e.target.value)} />
-                  </div>
-                </div>
-              </>
-            )}
+        )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="email" type="email" required className="pl-9" placeholder="name@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+        {/* Form */}
+        <form onSubmit={handleAuth} className="w-full flex flex-col space-y-6">
+          {isRegistering && (
+            <>
+              {/* Workspace Setup Toggle */}
+              <div className="flex items-center justify-between text-[11px] tracking-wider">
+                <span className="font-semibold uppercase">
+                  {joinMode ? 'Organization Code' : 'Company/Brand'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setJoinMode(!joinMode)}
+                  className="underline hover:text-white font-bold uppercase cursor-pointer"
+                >
+                  {joinMode ? 'Create New Company' : 'Have a join code?'}
+                </button>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="password" type="password" required className="pl-9" value={password} onChange={e => setPassword(e.target.value)} />
+              {/* Workspace Input */}
+              <div className="flex items-end border-b border-[#0f172a]/40 pb-2 focus-within:border-[#0f172a] transition-colors duration-200">
+                <Building2 className="h-5 w-5 mr-3 shrink-0" />
+                {joinMode ? (
+                  <input
+                    id="company"
+                    type="text"
+                    required
+                    className="bg-transparent border-none outline-none w-full placeholder-gray-300 text-sm p-0 focus:ring-0 focus:outline-none"
+                    placeholder="Paste organization ID here"
+                    value={joinCode}
+                    onChange={e => setJoinCode(e.target.value)}
+                  />
+                ) : (
+                  <input
+                    id="company"
+                    type="text"
+                    required
+                    className="bg-transparent border-none outline-none w-full placeholder-gray-300 text-sm p-0 focus:ring-0 focus:outline-none"
+                    placeholder="Acme Corp"
+                    value={companyName}
+                    onChange={e => setCompanyName(e.target.value)}
+                  />
+                )}
               </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Processing...' : (isRegistering ? 'Create Account' : 'Sign In')}
-            </Button>
-            <div className="text-center text-sm text-muted-foreground">
-              {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
-              <button 
-                type="button" 
-                onClick={() => { setIsRegistering(!isRegistering); setError(null); }} 
-                className="underline hover:text-primary font-medium"
+
+              {/* Full Name Input */}
+              <div className="flex items-end border-b border-[#0f172a]/40 pb-2 focus-within:border-[#0f172a] transition-colors duration-200">
+                <UserIcon className="h-5 w-5 mr-3 shrink-0" />
+                <input
+                  id="name"
+                  type="text"
+                  required
+                  className="bg-transparent border-none outline-none w-full placeholder-gray-300 text-sm p-0 focus:ring-0 focus:outline-none"
+                  placeholder="Full Name"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Email Input */}
+          <div className="flex items-end border-b border-[#0f172a]/40 pb-2 focus-within:border-[#0f172a] transition-colors duration-200">
+            <Mail className="h-5 w-5 mr-3 shrink-0" />
+            <input
+              id="email"
+              type="email"
+              required
+              className="bg-transparent border-none outline-none w-full placeholder-gray-300 text-sm p-0 focus:ring-0 focus:outline-none"
+              placeholder="Email ID"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+          </div>
+
+          {/* Password Input */}
+          <div className="flex items-end border-b border-[#0f172a]/40 pb-2 focus-within:border-[#0f172a] transition-colors duration-200">
+            <Lock className="h-5 w-5 mr-3 shrink-0" />
+            <input
+              id="password"
+              type="password"
+              required
+              className="bg-transparent border-none outline-none w-full placeholder-gray-300 text-sm p-0 focus:ring-0 focus:outline-none"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+          </div>
+
+          {/* Remember Me / Forgot Password row */}
+          {!isRegistering && (
+            <div className="flex justify-between items-center text-[11px] select-none tracking-wider">
+              <label className="flex items-center gap-2 cursor-pointer font-medium hover:text-white transition-colors">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded-none border border-[#0f172a]/40 accent-[#0f172a] bg-transparent cursor-pointer"
+                />
+                <span>Remember me</span>
+              </label>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  alert("Password reset functionality is not configured yet.");
+                }}
+                className="hover:underline font-medium hover:text-white transition-colors"
               >
-                {isRegistering ? 'Sign In' : 'Sign Up'}
-              </button>
+                Forgot Password?
+              </a>
             </div>
-          </CardFooter>
+          )}
+
+          {/* Space */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-[#0f172a] text-white font-semibold uppercase tracking-widest text-[13px] rounded-none hover:bg-[#0f172a]/90 active:scale-[0.99] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+            >
+              {loading ? 'Processing...' : (isRegistering ? 'Register' : 'Login')}
+            </button>
+          </div>
+
+          {/* Toggle Register/Login Link */}
+          <div className="text-center text-[11px] tracking-wider">
+            {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
+            <button
+              type="button"
+              onClick={() => { setIsRegistering(!isRegistering); setError(null); }}
+              className="underline hover:text-white font-bold uppercase cursor-pointer"
+            >
+              {isRegistering ? 'Sign In' : 'Sign Up'}
+            </button>
+          </div>
         </form>
-      </Card>
+
+        {/* Bottom Divider */}
+        <hr className="w-full border-white/60 mt-10" />
+      </div>
     </div>
   );
 }
