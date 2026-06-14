@@ -9,7 +9,7 @@ import { Plus, Search, Filter, PackageOpen, ArrowRight, DollarSign, ListPlus, Ca
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -272,6 +272,56 @@ export default function ProductsPage() {
     };
     setSelectedProduct(updatedProduct);
   };
+
+  const bomColumns: ColumnDef<any>[] = [
+    {
+      header: "Material",
+      className: "font-medium",
+      cell: (item) => {
+        const material = availableMaterials.find(m => m.id === item.materialId);
+        return material ? material.name : 'Unknown';
+      }
+    },
+    {
+      header: "Qty",
+      className: "text-right",
+      cell: (item) => {
+        const material = availableMaterials.find(m => m.id === item.materialId);
+        return material ? `${item.quantity} ${material.unit}` : item.quantity;
+      }
+    },
+    {
+      header: "Unit Cost",
+      className: "text-right",
+      cell: (item) => {
+        const material = availableMaterials.find(m => m.id === item.materialId);
+        return material ? `$${material.cost.toFixed(2)}` : '$0.00';
+      }
+    },
+    {
+      header: "Total Cost",
+      className: "text-right font-medium",
+      cell: (item) => {
+        const material = availableMaterials.find(m => m.id === item.materialId);
+        const total = material ? material.cost * item.quantity : 0;
+        return `$${total.toFixed(2)}`;
+      }
+    },
+    {
+      header: "",
+      className: "w-[80px]",
+      cell: (item) => (
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditIngredient(item)}>
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteIngredient(item.id)}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      )
+    }
+  ];
 
   if (isLoading) return <PageLoader />;
 
@@ -539,51 +589,12 @@ export default function ProductsPage() {
                   </Dialog>
                 </CardHeader>
                 <CardContent>
-                  <Table className="min-w-[800px] lg:min-w-full">
-                    <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
-                      <TableRow>
-                        <TableHead>Material</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Unit Cost</TableHead>
-                        <TableHead className="text-right">Total Cost</TableHead>
-                        <TableHead className="w-[80px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedProduct.bom.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                            No materials added yet. Add ingredients to define the recipe.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        selectedProduct.bom.map((item: any, idx: number) => {
-                          const material = availableMaterials.find(m => m.id === item.materialId);
-                          if (!material) return null;
-                          const total = material.cost * item.quantity;
-                          
-                          return (
-                            <TableRow key={item.id || idx}>
-                              <TableCell className="font-medium">{material.name}</TableCell>
-                              <TableCell className="text-right">{item.quantity} {material.unit}</TableCell>
-                              <TableCell className="text-right">${material.cost.toFixed(2)}</TableCell>
-                              <TableCell className="text-right font-medium">${total.toFixed(2)}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditIngredient(item)}>
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteIngredient(item.id)}>
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
+                  <DataTable
+                    data={selectedProduct.bom}
+                    columns={bomColumns}
+                    hideToolbar={true}
+                    emptyMessage={<div className="py-6 text-center text-muted-foreground">No materials added yet. Add ingredients to define the recipe.</div>}
+                  />
                 </CardContent>
               </Card>
 

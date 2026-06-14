@@ -8,14 +8,7 @@ import { usePaginatedSales } from "@/lib/hooks";
 import { Plus, Search, Filter, DollarSign, TrendingUp, ShoppingBag, Store, Trash2, MoreHorizontal, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -345,6 +338,172 @@ export default function SalesPage() {
   const globalGrossProfit = totalGlobalRevenue - totalGlobalCogs;
   const globalMargin = totalGlobalRevenue > 0 ? (globalGrossProfit / totalGlobalRevenue) * 100 : 0;
 
+  const cartColumns: ColumnDef<any>[] = [
+    {
+      header: "Product",
+      cell: (item, index) => (
+        <Select value={item.productId} onValueChange={v => {
+          const newItems = [...cartItems];
+          newItems[index].productId = v || "";
+          setCartItems(newItems);
+        }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a product">
+              {item.productId ? availableProducts.find(p => p.id === item.productId)?.name : "Select a product"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {availableProducts.map(p => (
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )
+    },
+    {
+      header: "Qty",
+      className: "w-[100px]",
+      cell: (item, index) => (
+        <Input type="number" min="1" value={item.quantity} onChange={e => {
+          const newItems = [...cartItems];
+          newItems[index].quantity = parseInt(e.target.value) || 0;
+          setCartItems(newItems);
+        }} />
+      )
+    },
+    {
+      header: "Unit Price",
+      className: "text-right",
+      cell: (item, index) => {
+        const calculated = cartTotals[index];
+        return <span className="text-muted-foreground">${calculated.unitPrice.toFixed(2)}</span>;
+      }
+    },
+    {
+      header: "Total",
+      className: "text-right",
+      cell: (item, index) => {
+        const calculated = cartTotals[index];
+        return <span className="font-medium">${calculated.revenue.toFixed(2)}</span>;
+      }
+    },
+    {
+      header: "",
+      className: "w-[50px]",
+      cell: (item, index) => (
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
+          if (cartItems.length > 1) {
+            setCartItems(cartItems.filter((_, i) => i !== index));
+          }
+        }}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )
+    }
+  ];
+
+  const viewDetailsColumns: ColumnDef<any>[] = [
+    {
+      header: "Product",
+      accessorKey: "productName",
+      className: "font-medium"
+    },
+    {
+      header: "Qty",
+      accessorKey: "quantity",
+      className: "text-right"
+    },
+    {
+      header: "Unit Price",
+      className: "text-right text-muted-foreground",
+      cell: (item) => `$${item.unitPrice.toFixed(2)}`
+    },
+    {
+      header: "Total",
+      className: "text-right font-medium",
+      cell: (item) => `$${item.revenue.toFixed(2)}`
+    }
+  ];
+
+  const salesColumns: ColumnDef<any>[] = [
+    {
+      header: "Date",
+      accessorKey: "date",
+      className: "text-muted-foreground whitespace-nowrap"
+    },
+    {
+      header: "Invoice",
+      cell: (item) => (
+        <span className="font-mono text-xs bg-muted px-2 py-1 rounded border">
+          {item.invoice}
+        </span>
+      )
+    },
+    {
+      header: "Customer / Partner",
+      cell: (item) => (
+        <>
+          <div className="font-medium">{item.customer}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {item.channel === 'B2B' ? 'B2B Wholesale' : 'B2C Direct'}
+          </div>
+        </>
+      )
+    },
+    {
+      header: "Items Sold",
+      accessorKey: "totalItems",
+      className: "text-right font-medium"
+    },
+    {
+      header: "Revenue",
+      className: "text-right font-medium",
+      cell: (item) => `$${item.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`
+    },
+    {
+      header: "Status",
+      className: "text-right",
+      cell: (item) => (
+        item.status === 'Paid' ? (
+          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+            Paid
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">
+            Pending
+          </span>
+        )
+      )
+    },
+    {
+      header: "",
+      className: "w-[50px]",
+      cell: (item) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
+            <MoreHorizontal className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setViewDetailsInvoice(item)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditClick(item)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDeleteInvoice(item.invoice)} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+  ];
+
   return (
     <div className="flex flex-col gap-6 h-full">
       <div className="flex items-center justify-between shrink-0">
@@ -436,68 +595,11 @@ export default function SalesPage() {
                   </Button>
                 </div>
                 
-                <div className="border rounded-lg overflow-hidden">
-                  <Table className="min-w-[800px] lg:min-w-full">
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead className="w-[100px]">Qty</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cartItems.map((item, index) => {
-                        const calculated = cartTotals[index];
-                        return (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <Select value={item.productId} onValueChange={v => {
-                                const newItems = [...cartItems];
-                                newItems[index].productId = v || "";
-                                setCartItems(newItems);
-                              }}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a product">
-                                    {item.productId ? availableProducts.find(p => p.id === item.productId)?.name : "Select a product"}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {availableProducts.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
-                              <Input type="number" min="1" value={item.quantity} onChange={e => {
-                                const newItems = [...cartItems];
-                                newItems[index].quantity = parseInt(e.target.value) || 0;
-                                setCartItems(newItems);
-                              }} />
-                            </TableCell>
-                            <TableCell className="text-right text-muted-foreground">
-                              ${calculated.unitPrice.toFixed(2)}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              ${calculated.revenue.toFixed(2)}
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
-                                if (cartItems.length > 1) {
-                                  setCartItems(cartItems.filter((_, i) => i !== index));
-                                }
-                              }}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                <DataTable
+                  data={cartItems}
+                  columns={cartColumns}
+                  hideToolbar={true}
+                />
               </div>
 
               {/* Totals Summary */}
@@ -533,28 +635,12 @@ export default function SalesPage() {
                     {viewDetailsInvoice.invoice} • {viewDetailsInvoice.date} • {viewDetailsInvoice.customer}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="border rounded-lg overflow-hidden my-4">
-                  <Table className="min-w-[800px] lg:min-w-full">
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {viewDetailsInvoice.items.map((item: any, i: number) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-medium">{item.productName}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right text-muted-foreground">${item.unitPrice.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-medium">${item.revenue.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <DataTable
+                  className="my-4"
+                  data={viewDetailsInvoice.items}
+                  columns={viewDetailsColumns}
+                  hideToolbar={true}
+                />
                 <div className="flex justify-end pt-2 border-t">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
@@ -607,123 +693,22 @@ export default function SalesPage() {
         </Card>
       </div>
 
-      <div className="bg-card border rounded-lg flex flex-col overflow-hidden flex-1 min-h-0">
-        <div className="p-4 border-b flex items-center justify-between gap-4 shrink-0">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search sales..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      <DataTable
+        data={sales.filter(s => s.customer.toLowerCase().includes(searchTerm.toLowerCase()))}
+        columns={salesColumns}
+        isLoading={isSalesLoading || isSupportingDataLoading}
+        searchPlaceholder="Search sales..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        filterAction={
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-        </div>
-        
-        {isSalesLoading || isSupportingDataLoading ? (
-          <div className="p-8 text-center text-muted-foreground flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-2"></div>
-            Loading sales...
-          </div>
-        ) : (
-          <>
-            <div className="relative w-full overflow-y-auto">
-              <Table className="min-w-[800px] lg:min-w-full">
-                <TableHeader className="bg-muted/50 sticky top-0 z-10">
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Customer / Partner</TableHead>
-                <TableHead className="text-right">Items Sold</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
-                <TableHead className="text-right">Status</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sales.filter(s => s.customer.toLowerCase().includes(searchTerm.toLowerCase())).map((sale) => {
-                return (
-                  <TableRow key={sale.id}>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">
-                      {sale.date}
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-xs bg-muted px-2 py-1 rounded border">
-                        {sale.invoice}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{sale.customer}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {sale.channel === 'B2B' ? 'B2B Wholesale' : 'B2C Direct'}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {sale.totalItems}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ${sale.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {sale.status === 'Paid' ? (
-                        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
-                          Paid
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">
-                          Pending
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuGroup>
-                            <DropdownMenuItem onClick={() => setViewDetailsInvoice(sale)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditClick(sale)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteInvoice(sale.invoice)} className="text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="p-4 border-t flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Showing page {page + 1}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={!paginatedData?.data || paginatedData.data.length < 20}>
-                Next
-              </Button>
-            </div>
-          </div>
-        </>
-        )}
-      </div>
+        }
+        page={page}
+        onPageChange={setPage}
+        hasMore={!!paginatedData?.data && paginatedData.data.length >= 20}
+      />
     </div>);
 }

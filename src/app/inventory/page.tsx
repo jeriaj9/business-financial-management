@@ -8,14 +8,7 @@ import { PageLoader } from "@/components/PageLoader";
 import { ArrowDownRight, ArrowUpRight, Box, Boxes, PackageSearch } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 
 export default function InventoryPage() {
   const [metrics, setMetrics] = useState({
@@ -89,6 +82,65 @@ export default function InventoryPage() {
       console.error("loadData error:", e);
     }
   }, [materialsData, productsData, txsData]);
+
+  const productColumns: ColumnDef<any>[] = [
+    {
+      header: "Product",
+      cell: (item) => (
+        <>
+          <div className="font-medium">{item.name}</div>
+          <div className="text-xs text-muted-foreground">{item.sku}</div>
+        </>
+      )
+    },
+    {
+      header: "Stock",
+      className: "text-right font-medium",
+      cell: (item) => (
+        <>
+          {Number(item.current_stock || 0)} <span className="text-muted-foreground font-normal text-xs ml-1">units</span>
+        </>
+      )
+    },
+    {
+      header: "Value (COGS)",
+      className: "text-right font-medium text-emerald-600",
+      cell: (item) => {
+        const value = Number(item.current_stock || 0) * Number(item.total_cost || 0);
+        return `$${value.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+      }
+    }
+  ];
+
+  const transactionColumns: ColumnDef<any>[] = [
+    {
+      header: "Item",
+      cell: (item) => (
+        <>
+          <div className="font-medium">{item.item}</div>
+          <div className="text-xs text-muted-foreground">{item.date} • {item.reference}</div>
+        </>
+      )
+    },
+    {
+      header: "Type",
+      cell: (item) => {
+        if (item.type === 'IN') return <span className="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-full flex w-fit items-center"><ArrowDownRight className="h-3 w-3 mr-1"/> Purchase IN</span>;
+        if (item.type === 'OUT') return <span className="text-xs font-semibold text-sky-600 bg-sky-500/10 px-2 py-1 rounded-full flex w-fit items-center"><ArrowUpRight className="h-3 w-3 mr-1"/> Sale OUT</span>;
+        if (item.type === 'PRODUCTION_USAGE') return <span className="text-xs font-semibold text-amber-600 bg-amber-500/10 px-2 py-1 rounded-full flex w-fit items-center"><Boxes className="h-3 w-3 mr-1"/> Production</span>;
+        return item.type;
+      }
+    },
+    {
+      header: "Qty",
+      className: "text-right font-medium",
+      cell: (item) => (
+        <span className={item.qty > 0 ? "text-emerald-600" : "text-destructive"}>
+          {item.qty > 0 ? "+" : ""}{item.qty}
+        </span>
+      )
+    }
+  ];
 
   if (isLoading) return <PageLoader />;
 
@@ -171,41 +223,12 @@ export default function InventoryPage() {
             <CardDescription>Current stock levels of all products ready for sale.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 p-0 overflow-auto">
-            <Table className="min-w-[800px] lg:min-w-full">
-              <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="text-right">Value (COGS)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {productInventory.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">No products registered.</TableCell>
-                  </TableRow>
-                )}
-                {productInventory.map((p) => {
-                  const stock = Number(p.current_stock || 0);
-                  const cost = Number(p.total_cost || 0);
-                  const value = stock * cost;
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell>
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-muted-foreground">{p.sku}</div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {stock} <span className="text-muted-foreground font-normal text-xs ml-1">units</span>
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-emerald-600">
-                        ${value.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <DataTable
+              data={productInventory}
+              columns={productColumns}
+              hideToolbar={true}
+              emptyMessage={<div className="py-4 text-center text-muted-foreground">No products registered.</div>}
+            />
           </CardContent>
         </Card>
 
@@ -216,40 +239,12 @@ export default function InventoryPage() {
             <CardDescription>Latest stock movements across the platform.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 p-0 overflow-auto">
-            <Table className="min-w-[800px] lg:min-w-full">
-              <TableHeader className="bg-muted/50 sticky top-0">
-                <TableRow>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">No recent transactions.</TableCell>
-                  </TableRow>
-                )}
-                {transactions.map((tx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell>
-                      <div className="font-medium">{tx.item}</div>
-                      <div className="text-xs text-muted-foreground">{tx.date} • {tx.reference}</div>
-                    </TableCell>
-                    <TableCell>
-                      {tx.type === 'IN' && <span className="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-full flex w-fit items-center"><ArrowDownRight className="h-3 w-3 mr-1"/> Purchase IN</span>}
-                      {tx.type === 'OUT' && <span className="text-xs font-semibold text-sky-600 bg-sky-500/10 px-2 py-1 rounded-full flex w-fit items-center"><ArrowUpRight className="h-3 w-3 mr-1"/> Sale OUT</span>}
-                      {tx.type === 'PRODUCTION_USAGE' && <span className="text-xs font-semibold text-amber-600 bg-amber-500/10 px-2 py-1 rounded-full flex w-fit items-center"><Boxes className="h-3 w-3 mr-1"/> Production</span>}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      <span className={tx.qty > 0 ? "text-emerald-600" : "text-destructive"}>
-                        {tx.qty > 0 ? "+" : ""}{tx.qty}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              data={transactions}
+              columns={transactionColumns}
+              hideToolbar={true}
+              emptyMessage={<div className="py-4 text-center text-muted-foreground">No recent transactions.</div>}
+            />
           </CardContent>
         </Card>
       </div>

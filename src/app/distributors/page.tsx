@@ -8,14 +8,7 @@ import { useDistributors } from "@/lib/hooks";
 import { Plus, Search, Filter, MoreHorizontal, FileText, Phone, Mail, Eye, DollarSign, TrendingUp, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -155,6 +148,116 @@ export default function DistributorsPage() {
 
   const totalOutstanding = distributors.reduce((sum, d) => sum + d.balance, 0);
 
+  const distributorColumns: ColumnDef<any>[] = [
+    {
+      header: "Distributor",
+      className: "font-medium",
+      cell: (item) => (
+        <>
+          {item.name}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+            <span className="flex items-center"><Mail className="h-3 w-3 mr-1"/>{item.email}</span>
+            <span className="flex items-center"><Phone className="h-3 w-3 mr-1"/>{item.phone}</span>
+          </div>
+        </>
+      )
+    },
+    {
+      header: "Contact",
+      accessorKey: "contact"
+    },
+    {
+      header: "Pricing Tier",
+      cell: (item) => (
+        <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+          {item.tier}
+        </span>
+      )
+    },
+    {
+      header: "Orders",
+      accessorKey: "orders",
+      className: "text-right font-medium"
+    },
+    {
+      header: "Balance",
+      className: "text-right",
+      cell: (item) => (
+        item.balance > 0 ? (
+          <span className="text-destructive font-medium">DOP {item.balance.toLocaleString()}</span>
+        ) : (
+          <span className="text-muted-foreground">Settled</span>
+        )
+      )
+    },
+    {
+      header: "",
+      className: "w-[50px]",
+      cell: (item) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
+            <MoreHorizontal className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => setViewDetailsDistributor(item)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Insights
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditClick(item)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDeleteDistributor(item.id)} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+  ];
+
+  const invoiceHistoryColumns: ColumnDef<any>[] = [
+    {
+      header: "Date",
+      accessorKey: "date",
+      className: "text-muted-foreground"
+    },
+    {
+      header: "Invoice",
+      accessorKey: "invoice",
+      className: "font-mono text-xs"
+    },
+    {
+      header: "Items Sold",
+      accessorKey: "items",
+      className: "text-right font-medium"
+    },
+    {
+      header: "Revenue",
+      className: "text-right font-medium text-emerald-600",
+      cell: (item) => `$${item.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`
+    },
+    {
+      header: "Status",
+      className: "text-right",
+      cell: (item) => (
+        item.status === 'Paid' ? (
+          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+            Paid
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">
+            Pending
+          </span>
+        )
+      )
+    }
+  ];
+
   if (isDistributorsLoading) return <PageLoader />;
 
   return (
@@ -267,50 +370,12 @@ export default function DistributorsPage() {
                   </Card>
                 </div>
                 
-                <div className="flex-1 overflow-auto border rounded-lg min-h-0">
-                  <Table className="min-w-[800px] lg:min-w-full">
-                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Invoice</TableHead>
-                        <TableHead className="text-right">Items Sold</TableHead>
-                        <TableHead className="text-right">Revenue</TableHead>
-                        <TableHead className="text-right">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {viewDetailsDistributor.invoiceHistory.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                            No purchase history found for this distributor.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        viewDetailsDistributor.invoiceHistory.map((inv: any, i: number) => (
-                          <TableRow key={i}>
-                            <TableCell className="text-muted-foreground">{inv.date}</TableCell>
-                            <TableCell className="font-mono text-xs">{inv.invoice}</TableCell>
-                            <TableCell className="text-right font-medium">{inv.items}</TableCell>
-                            <TableCell className="text-right font-medium text-emerald-600">
-                              ${inv.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {inv.status === 'Paid' ? (
-                                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
-                                  Paid
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">
-                                  Pending
-                                </span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                <DataTable
+                  data={viewDetailsDistributor.invoiceHistory}
+                  columns={invoiceHistoryColumns}
+                  hideToolbar={true}
+                  emptyMessage={<div className="py-8 text-center text-muted-foreground">No purchase history found for this distributor.</div>}
+                />
               </>
             )}
           </DialogContent>
@@ -338,90 +403,19 @@ export default function DistributorsPage() {
         </Card>
       </div>
 
-      <div className="bg-card border rounded-lg flex flex-col overflow-hidden flex-1 min-h-0">
-        <div className="p-4 border-b flex items-center justify-between gap-4 shrink-0">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search distributors..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      <DataTable
+        data={distributors.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()))}
+        columns={distributorColumns}
+        searchPlaceholder="Search distributors..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        filterAction={
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-        </div>
-        
-        <div className="relative w-full overflow-y-auto">
-          <Table className="min-w-[800px] lg:min-w-full">
-            <TableHeader className="bg-muted/50 sticky top-0 z-10">
-              <TableRow>
-                <TableHead>Distributor</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Pricing Tier</TableHead>
-                <TableHead className="text-right">Orders</TableHead>
-                <TableHead className="text-right">Balance</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {distributors.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase())).map((distributor) => (
-                <TableRow key={distributor.id}>
-                  <TableCell className="font-medium">
-                    {distributor.name}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                      <span className="flex items-center"><Mail className="h-3 w-3 mr-1"/>{distributor.email}</span>
-                      <span className="flex items-center"><Phone className="h-3 w-3 mr-1"/>{distributor.phone}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{distributor.contact}</TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                      {distributor.tier}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{distributor.orders}</TableCell>
-                  <TableCell className="text-right">
-                    {distributor.balance > 0 ? (
-                      <span className="text-destructive font-medium">DOP {distributor.balance.toLocaleString()}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Settled</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => setViewDetailsDistributor(distributor)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Insights
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditClick(distributor)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteDistributor(distributor.id)} className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

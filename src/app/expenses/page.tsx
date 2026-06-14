@@ -8,14 +8,7 @@ import { PageLoader } from "@/components/PageLoader";
 import { Plus, Search, Filter, DollarSign, TrendingDown, Receipt, Calendar, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -54,7 +47,7 @@ export default function ExpensesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
   const { data: paginatedData, isLoading: isExpensesLoading, mutate: mutateExpenses } = usePaginatedExpenses(profile?.company_id, page, 20);
-  
+
   const [expenses, setExpenses] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -102,7 +95,7 @@ export default function ExpensesPage() {
         amount: Number(formData.amount),
         vendor: formData.reference
       }).eq('id', editingExpenseId);
-      
+
       if (!error) mutateExpenses();
     } else {
       const { error } = await supabase.from('expenses').insert([{
@@ -124,6 +117,67 @@ export default function ExpensesPage() {
 
   const totalMonthly = expenses.reduce((sum, e) => sum + e.amount, 0);
 
+  const expenseColumns: ColumnDef<any>[] = [
+    {
+      header: "Date",
+      cell: (item) => (
+        <span className="flex items-center">
+          <Calendar className="h-3 w-3 mr-2" />
+          {item.date}
+        </span>
+      )
+    },
+    {
+      header: "Category",
+      cell: (item) => (
+        <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground ring-1 ring-inset ring-secondary-foreground/10">
+          {item.category}
+        </span>
+      )
+    },
+    {
+      header: "Description",
+      accessorKey: "description",
+      className: "font-medium"
+    },
+    {
+      header: "Reference",
+      accessorKey: "reference"
+    },
+    {
+      header: "Amount (DOP)",
+      className: "text-right font-medium text-destructive",
+      cell: (item) => `- $${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+    },
+    {
+      header: "",
+      className: "w-[50px]",
+      cell: (item) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
+            <MoreHorizontal className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setViewDetailsExpense(item)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditClick(item)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDeleteExpense(item.id)} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+  ];
+
   if (isExpensesLoading && page === 0) return <PageLoader />;
 
   return (
@@ -133,7 +187,7 @@ export default function ExpensesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Operating Expenses</h1>
           <p className="text-muted-foreground mt-1">Track overhead, marketing, and operational costs.</p>
         </div>
-        
+
         <Button onClick={() => setIsAddOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Log Expense
@@ -154,11 +208,11 @@ export default function ExpensesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="date">Date</Label>
-                  <Input id="date" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                  <Input id="date" type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={v => setFormData({...formData, category: v || ""})}>
+                  <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v || "" })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
@@ -175,16 +229,16 @@ export default function ExpensesPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="desc">Description</Label>
-                <Input id="desc" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="e.g. Facebook Ads" />
+                <Input id="desc" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="e.g. Facebook Ads" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="amount">Amount (DOP)</Label>
-                  <Input id="amount" type="number" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} placeholder="0.00" />
+                  <Input id="amount" type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="ref">Reference / Receipt #</Label>
-                  <Input id="ref" value={formData.reference} onChange={e => setFormData({...formData, reference: e.target.value})} placeholder="INV-1234" />
+                  <Input id="ref" value={formData.reference} onChange={e => setFormData({ ...formData, reference: e.target.value })} placeholder="INV-1234" />
                 </div>
               </div>
             </div>
@@ -208,7 +262,7 @@ export default function ExpensesPage() {
                   <div className="flex justify-between items-center border-b pb-4">
                     <span className="text-muted-foreground">Amount</span>
                     <span className="text-3xl font-bold text-destructive">
-                      ${viewDetailsExpense.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                      ${viewDetailsExpense.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-y-4 text-sm">
@@ -260,104 +314,23 @@ export default function ExpensesPage() {
         </Card>
       </div>
 
-      <div className="bg-card border rounded-lg flex flex-col overflow-hidden flex-1">
-        <div className="p-4 border-b flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search expenses..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      <DataTable
+        data={expenses.filter(e => e.description.toLowerCase().includes(searchTerm.toLowerCase()))}
+        columns={expenseColumns}
+        isLoading={isExpensesLoading}
+        searchPlaceholder="Search expenses..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        filterAction={
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-        </div>
-        
-        {isExpensesLoading ? (
-          <div className="p-8 text-center text-muted-foreground flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-2"></div>
-            Loading expenses...
-          </div>
-        ) : (
-          <>
-            <div className="relative w-full overflow-auto">
-              <Table className="min-w-[800px] lg:min-w-full">
-                <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Reference</TableHead>
-                <TableHead className="text-right">Amount (DOP)</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenses.filter(e => e.description.toLowerCase().includes(searchTerm.toLowerCase())).map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell className="text-muted-foreground flex items-center">
-                    <Calendar className="h-3 w-3 mr-2"/>
-                    {expense.date}
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground ring-1 ring-inset ring-secondary-foreground/10">
-                      {expense.category}
-                    </span>
-                  </TableCell>
-                  <TableCell className="font-medium">{expense.description}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{expense.reference}</TableCell>
-                  <TableCell className="text-right font-medium text-destructive">
-                    - ${expense.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                          <DropdownMenuItem onClick={() => setViewDetailsExpense(expense)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditClick(expense)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="p-4 border-t flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Showing page {page + 1}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={!paginatedData?.data || paginatedData.data.length < 20}>
-                Next
-              </Button>
-            </div>
-          </div>
-        </>
-        )}
-      </div>
+        }
+        page={page}
+        onPageChange={setPage}
+        hasMore={!!paginatedData?.data && paginatedData.data.length >= 20}
+      />
     </div>
   );
 }

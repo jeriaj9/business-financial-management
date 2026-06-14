@@ -8,14 +8,7 @@ import { useMaterials } from "@/lib/hooks";
 import { Plus, Search, Filter, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -146,6 +139,79 @@ export default function MaterialsPage() {
     mutateMaterials();
   };
 
+  const materialColumns: ColumnDef<any>[] = [
+    {
+      header: "Material Name",
+      accessorKey: "name",
+      className: "font-medium"
+    },
+    {
+      header: "Category",
+      cell: (item) => (
+        <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground ring-1 ring-inset ring-secondary-foreground/10 capitalize">
+          {item.category}
+        </span>
+      )
+    },
+    {
+      header: "Supplier",
+      accessorKey: "supplier",
+      className: "text-muted-foreground"
+    },
+    {
+      header: "Unit Cost (DOP)",
+      className: "text-right",
+      cell: (item) => `$${item.cost.toFixed(2)} /${item.unit}`
+    },
+    {
+      header: "Stock",
+      className: "text-right font-medium",
+      cell: (item) => `${item.stock} ${item.unit}`
+    },
+    {
+      header: "Status",
+      className: "text-right",
+      cell: (item) => {
+        const isLowStock = item.stock <= item.reorder;
+        return isLowStock ? (
+          <span className="inline-flex items-center rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/20">
+            Low Stock
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+            Healthy
+          </span>
+        );
+      }
+    },
+    {
+      header: "",
+      className: "w-[50px]",
+      cell: (item) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
+            <span className="sr-only">Open menu</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => handleOpenModal(item)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleDelete(item.id, item.name)} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+  ];
+
   if (isMaterialsLoading) return <PageLoader />;
 
   return (
@@ -264,94 +330,19 @@ export default function MaterialsPage() {
         </Dialog>
       </div>
 
-      <div className="bg-card border rounded-lg flex flex-col overflow-hidden">
-        <div className="p-4 border-b flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search materials..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      <DataTable
+        data={materials.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()))}
+        columns={materialColumns}
+        searchPlaceholder="Search materials..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        filterAction={
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-        </div>
-
-        <div className="relative w-full overflow-auto">
-          <Table className="min-w-[800px] lg:min-w-full">
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead>Material Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead className="text-right">Unit Cost (DOP)</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead className="text-right">Status</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {materials.map((material) => {
-                const isLowStock = material.stock <= material.reorder;
-
-                return (
-                  <TableRow key={material.id}>
-                    <TableCell className="font-medium">{material.name}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground ring-1 ring-inset ring-secondary-foreground/10 capitalize">
-                        {material.category}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{material.supplier}</TableCell>
-                    <TableCell className="text-right">${material.cost.toFixed(2)} /{material.unit}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {material.stock} {material.unit}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isLowStock ? (
-                        <span className="inline-flex items-center rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/20">
-                          Low Stock
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
-                          Healthy
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuGroup>
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleOpenModal(material)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDelete(material.id, material.name)} className="text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

@@ -9,14 +9,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import {
   Select,
   SelectContent,
@@ -92,6 +85,51 @@ export default function SettingsPage() {
       alert("Failed to update role. You might not have Admin privileges.");
     }
   };
+
+  const teamColumns: ColumnDef<any>[] = [
+    {
+      header: "User",
+      cell: (item) => (
+        <div className="flex items-center gap-2 font-medium">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
+            {(item.full_name || 'U')[0].toUpperCase()}
+          </div>
+          {item.full_name || 'Unknown User'}
+        </div>
+      )
+    },
+    {
+      header: "Joined",
+      className: "text-muted-foreground text-sm",
+      cell: (item) => new Date(item.created_at).toLocaleDateString()
+    },
+    {
+      header: "Role",
+      className: "w-[150px]",
+      cell: (item) => (
+        <Select 
+          value={item.role} 
+          onValueChange={(v) => handleRoleChange(item.id, v)}
+          disabled={profile?.role !== 'admin' || item.id === profile?.id}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="view">
+              <div className="flex items-center"><Eye className="h-4 w-4 mr-2 text-muted-foreground" /> View Only</div>
+            </SelectItem>
+            <SelectItem value="edit">
+              <div className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-blue-500" /> Editor</div>
+            </SelectItem>
+            <SelectItem value="admin">
+              <div className="flex items-center"><Shield className="h-4 w-4 mr-2 text-destructive" /> Admin</div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      )
+    }
+  ];
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto">
@@ -230,54 +268,11 @@ export default function SettingsPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <Table className="min-w-[800px] lg:min-w-full">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="w-[150px]">Role</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {teamMembers.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                            {(member.full_name || 'U')[0].toUpperCase()}
-                          </div>
-                          {member.full_name || 'Unknown User'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {new Date(member.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Select 
-                          value={member.role} 
-                          onValueChange={(v) => handleRoleChange(member.id, v)}
-                          disabled={profile?.role !== 'admin' || member.id === profile?.id}
-                        >
-                          <SelectTrigger className="h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="view">
-                              <div className="flex items-center"><Eye className="h-4 w-4 mr-2 text-muted-foreground" /> View Only</div>
-                            </SelectItem>
-                            <SelectItem value="edit">
-                              <div className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-blue-500" /> Editor</div>
-                            </SelectItem>
-                            <SelectItem value="admin">
-                              <div className="flex items-center"><Shield className="h-4 w-4 mr-2 text-destructive" /> Admin</div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <DataTable
+                data={teamMembers}
+                columns={teamColumns}
+                hideToolbar={true}
+              />
             </CardContent>
           </Card>
         </TabsContent>
