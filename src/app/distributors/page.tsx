@@ -9,14 +9,7 @@ import { Plus, Search, Filter, MoreHorizontal, FileText, Phone, Mail, Eye, Dolla
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { AppDialog } from "@/components/ui/app-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -272,18 +265,24 @@ export default function DistributorsPage() {
           <Plus className="h-4 w-4 mr-2" />
           Add Distributor
         </Button>
-        <Dialog open={isAddOpen} onOpenChange={(open) => {
-          setIsAddOpen(open);
-          if (!open) {
-            setEditingDistributorId(null);
-            setFormData({ name: "", contact: "", email: "", phone: "", tier: "Standard" });
+        <AppDialog
+          open={isAddOpen}
+          onOpenChange={(open) => {
+            setIsAddOpen(open);
+            if (!open) {
+              setEditingDistributorId(null);
+              setFormData({ name: "", contact: "", email: "", phone: "", tier: "Standard" });
+            }
+          }}
+          title={editingDistributorId ? "Edit Distributor Profile" : "New Distributor Profile"}
+          description="Create a new wholesale account for specific pricing rules."
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+              <Button onClick={handleAddDistributor}>{editingDistributorId ? "Save Changes" : "Create Profile"}</Button>
+            </>
           }
-        }}>
-          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingDistributorId ? "Edit Distributor Profile" : "New Distributor Profile"}</DialogTitle>
-              <DialogDescription>Create a new wholesale account for specific pricing rules.</DialogDescription>
-            </DialogHeader>
+        >
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">Business Name</Label>
@@ -317,25 +316,19 @@ export default function DistributorsPage() {
                 </Select>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddDistributor}>{editingDistributorId ? "Save Changes" : "Create Profile"}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </AppDialog>
         
         {/* View Details Modal */}
-        <Dialog open={!!viewDetailsDistributor} onOpenChange={(open) => !open && setViewDetailsDistributor(null)}>
-          <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto max-h-[90vh] flex flex-col">
+        <AppDialog
+          open={!!viewDetailsDistributor}
+          onOpenChange={(open) => !open && setViewDetailsDistributor(null)}
+          title={viewDetailsDistributor ? viewDetailsDistributor.name : ""}
+          description="Financial Insights and Purchase History"
+          maxWidthClass="sm:max-w-4xl"
+          headerClassName="text-2xl"
+        >
             {viewDetailsDistributor && (
               <>
-                <DialogHeader className="shrink-0">
-                  <DialogTitle className="text-2xl">{viewDetailsDistributor.name}</DialogTitle>
-                  <DialogDescription>
-                    Financial Insights and Purchase History
-                  </DialogDescription>
-                </DialogHeader>
-                
                 <div className="grid gap-4 md:grid-cols-3 shrink-0 py-4">
                   <Card className="bg-primary/5">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -378,8 +371,7 @@ export default function DistributorsPage() {
                 />
               </>
             )}
-          </DialogContent>
-        </Dialog>
+        </AppDialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 shrink-0">

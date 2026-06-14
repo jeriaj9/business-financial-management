@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AppDialog } from "@/components/ui/app-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateCosts, GlobalSettings, Material } from "@/lib/pricing";
@@ -337,12 +337,18 @@ export default function ProductsPage() {
           <PackageOpen className="h-4 w-4 mr-2" />
           New Product
         </Button>
-        <Dialog open={isNewProductOpen} onOpenChange={setIsNewProductOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Product</DialogTitle>
-              <DialogDescription>Initialize a new product to begin creating its recipe.</DialogDescription>
-            </DialogHeader>
+        <AppDialog
+          open={isNewProductOpen}
+          onOpenChange={setIsNewProductOpen}
+          title="Create New Product"
+          description="Initialize a new product to begin creating its recipe."
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setIsNewProductOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateProduct}>Create</Button>
+            </>
+          }
+        >
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Product Name</Label>
@@ -359,12 +365,7 @@ export default function ProductsPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsNewProductOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateProduct}>Create</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </AppDialog>
       </div>
 
       <div className="flex gap-6 flex-1 min-h-0">
@@ -445,12 +446,18 @@ export default function ProductsPage() {
               </div>
 
               {/* Edit Details Dialog */}
-              <Dialog open={isEditProductOpen} onOpenChange={setIsEditProductOpen}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Edit Product Details</DialogTitle>
-                    <DialogDescription>These changes will be saved to local state until you click Save Changes.</DialogDescription>
-                  </DialogHeader>
+              <AppDialog
+                open={isEditProductOpen}
+                onOpenChange={setIsEditProductOpen}
+                title="Edit Product Details"
+                description="These changes will be saved to local state until you click Save Changes."
+                footer={
+                  <>
+                    <Button variant="outline" onClick={() => setIsEditProductOpen(false)}>Cancel</Button>
+                    <Button onClick={handleEditDetailsSave}>Update Preview</Button>
+                  </>
+                }
+              >
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label>Product Name</Label>
@@ -467,12 +474,7 @@ export default function ProductsPage() {
                       </div>
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsEditProductOpen(false)}>Cancel</Button>
-                    <Button onClick={handleEditDetailsSave}>Update Preview</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              </AppDialog>
 
               {/* Automated Pricing Calculator Dashboard */}
               <Card className="border-primary/20 bg-primary/5 shrink-0">
@@ -544,18 +546,28 @@ export default function ProductsPage() {
                     <ListPlus className="h-4 w-4 mr-2" />
                     Add Ingredient
                   </Button>
-                  <Dialog open={isAddIngredientOpen} onOpenChange={(open) => {
-                    setIsAddIngredientOpen(open);
-                    if (!open) {
-                      setEditingBomItem(null);
-                      setNewIngredientForm({ materialId: "", quantity: "" });
+                  <AppDialog 
+                    open={isAddIngredientOpen} 
+                    onOpenChange={(open) => {
+                      setIsAddIngredientOpen(open);
+                      if (!open) {
+                        setEditingBomItem(null);
+                        setNewIngredientForm({ materialId: "", quantity: "" });
+                      }
+                    }}
+                    title={editingBomItem ? "Edit Ingredient" : "Add Ingredient to BOM"}
+                    description={editingBomItem ? "Update local quantity." : "Select a raw material."}
+                    footer={
+                      <>
+                        <Button variant="outline" onClick={() => {
+                          setIsAddIngredientOpen(false);
+                          setEditingBomItem(null);
+                          setNewIngredientForm({ materialId: "", quantity: "" });
+                        }}>Cancel</Button>
+                        <Button onClick={handleAddIngredient}>{editingBomItem ? "Update Preview" : "Add to Preview"}</Button>
+                      </>
                     }
-                  }}>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{editingBomItem ? "Edit Ingredient" : "Add Ingredient to BOM"}</DialogTitle>
-                        <DialogDescription>{editingBomItem ? "Update local quantity." : "Select a raw material."}</DialogDescription>
-                      </DialogHeader>
+                  >
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                           <Label>Raw Material</Label>
@@ -577,16 +589,7 @@ export default function ProductsPage() {
                           <Input type="number" value={newIngredientForm.quantity} onChange={e => setNewIngredientForm({...newIngredientForm, quantity: e.target.value})} placeholder="0" />
                         </div>
                       </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => {
-                          setIsAddIngredientOpen(false);
-                          setEditingBomItem(null);
-                          setNewIngredientForm({ materialId: "", quantity: "" });
-                        }}>Cancel</Button>
-                        <Button onClick={handleAddIngredient}>{editingBomItem ? "Update Preview" : "Add to Preview"}</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  </AppDialog>
                 </CardHeader>
                 <CardContent>
                   <DataTable

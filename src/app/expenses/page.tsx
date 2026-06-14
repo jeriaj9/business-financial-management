@@ -9,15 +9,7 @@ import { Plus, Search, Filter, DollarSign, TrendingDown, Receipt, Calendar, More
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { AppDialog } from "@/components/ui/app-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -192,18 +184,24 @@ export default function ExpensesPage() {
           <Plus className="h-4 w-4 mr-2" />
           Log Expense
         </Button>
-        <Dialog open={isAddOpen} onOpenChange={(open) => {
-          setIsAddOpen(open);
-          if (!open) {
-            setEditingExpenseId(null);
-            setFormData({ date: new Date().toISOString().split('T')[0], category: "", description: "", amount: "", reference: "" });
+        <AppDialog
+          open={isAddOpen}
+          onOpenChange={(open) => {
+            setIsAddOpen(open);
+            if (!open) {
+              setEditingExpenseId(null);
+              setFormData({ date: new Date().toISOString().split('T')[0], category: "", description: "", amount: "", reference: "" });
+            }
+          }}
+          title={editingExpenseId ? "Edit Expense" : "Log New Expense"}
+          description="Record an operational cost that affects your overall net profit."
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+              <Button onClick={handleAddExpense}>{editingExpenseId ? "Save Changes" : "Save Expense"}</Button>
+            </>
           }
-        }}>
-          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingExpenseId ? "Edit Expense" : "Log New Expense"}</DialogTitle>
-              <DialogDescription>Record an operational cost that affects your overall net profit.</DialogDescription>
-            </DialogHeader>
+        >
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
@@ -242,22 +240,16 @@ export default function ExpensesPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddExpense}>{editingExpenseId ? "Save Changes" : "Save Expense"}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </AppDialog>
 
         {/* View Details Modal */}
-        <Dialog open={!!viewDetailsExpense} onOpenChange={(open) => !open && setViewDetailsExpense(null)}>
-          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <AppDialog
+          open={!!viewDetailsExpense}
+          onOpenChange={(open) => !open && setViewDetailsExpense(null)}
+          title="Expense Details"
+          description={viewDetailsExpense ? `Reference: ${viewDetailsExpense.reference || "N/A"}` : ""}
+        >
             {viewDetailsExpense && (
-              <>
-                <DialogHeader>
-                  <DialogTitle>Expense Details</DialogTitle>
-                  <DialogDescription>Reference: {viewDetailsExpense.reference || "N/A"}</DialogDescription>
-                </DialogHeader>
                 <div className="space-y-6 py-4">
                   <div className="flex justify-between items-center border-b pb-4">
                     <span className="text-muted-foreground">Amount</span>
@@ -285,10 +277,8 @@ export default function ExpensesPage() {
                     </div>
                   </div>
                 </div>
-              </>
             )}
-          </DialogContent>
-        </Dialog>
+        </AppDialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

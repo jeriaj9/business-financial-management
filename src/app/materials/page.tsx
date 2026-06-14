@@ -9,14 +9,7 @@ import { Plus, Search, Filter, MoreHorizontal, Pencil, Trash2 } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { AppDialog } from "@/components/ui/app-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -227,14 +220,21 @@ export default function MaterialsPage() {
           Add Material
         </Button>
 
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingMaterial ? "Edit Material" : "Add New Material"}</DialogTitle>
-              <DialogDescription>
-                {editingMaterial ? "Update the details for this raw material." : "Register a new raw material to your inventory database."}
-              </DialogDescription>
-            </DialogHeader>
+        <AppDialog
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          title={editingMaterial ? "Edit Material" : "Add New Material"}
+          description={editingMaterial ? "Update the details for this raw material." : "Register a new raw material to your inventory database."}
+          maxWidthClass="sm:max-w-[425px]"
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button type="submit" onClick={handleSave}>
+                {editingMaterial ? "Update Material" : "Save Material"}
+              </Button>
+            </>
+          }
+        >
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">Material Name</Label>
@@ -320,14 +320,7 @@ export default function MaterialsPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button type="submit" onClick={handleSave}>
-                {editingMaterial ? "Update Material" : "Save Material"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </AppDialog>
       </div>
 
       <DataTable

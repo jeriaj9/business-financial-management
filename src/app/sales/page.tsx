@@ -9,14 +9,7 @@ import { Plus, Search, Filter, DollarSign, TrendingUp, ShoppingBag, Store, Trash
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { AppDialog } from "@/components/ui/app-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -517,19 +510,28 @@ export default function SalesPage() {
           Register Sale
         </Button>
 
-        <Dialog open={isAddOpen} onOpenChange={(open) => {
-          setIsAddOpen(open);
-          if (!open) {
-            setEditingInvoiceNumber(null);
-            setFormData({ date: new Date().toISOString().split('T')[0], channel: "B2C", customer: "", distributorId: "", status: "Paid" });
-            setCartItems([{productId: "", quantity: 1}]);
+        <AppDialog
+          open={isAddOpen}
+          onOpenChange={(open) => {
+            setIsAddOpen(open);
+            if (!open) {
+              setEditingInvoiceNumber(null);
+              setFormData({ date: new Date().toISOString().split('T')[0], channel: "B2C", customer: "", distributorId: "", status: "Paid" });
+              setCartItems([{productId: "", quantity: 1}]);
+            }
+          }}
+          title={editingInvoiceNumber ? `Edit Sale: ${editingInvoiceNumber}` : "Register New Sale"}
+          description="Add line items to your invoice. Pricing is auto-calculated based on your BOM."
+          maxWidthClass="sm:max-w-4xl"
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+              <Button onClick={handleAddSale} disabled={cartItems.length === 0 || !cartItems[0].productId}>
+                {editingInvoiceNumber ? "Save Changes" : "Register Sale"}
+              </Button>
+            </>
           }
-        }}>
-          <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingInvoiceNumber ? `Edit Sale: ${editingInvoiceNumber}` : "Register New Sale"}</DialogTitle>
-              <DialogDescription>Add line items to your invoice. Pricing is auto-calculated based on your BOM.</DialogDescription>
-            </DialogHeader>
+        >
             <div className="grid gap-6 py-4">
               
               {/* Sale Details */}
@@ -615,33 +617,25 @@ export default function SalesPage() {
               </div>
 
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddSale} disabled={cartItems.length === 0 || !cartItems[0].productId}>
-                {editingInvoiceNumber ? "Save Changes" : "Register Sale"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </AppDialog>
         
         {/* View Details Modal */}
-        <Dialog open={!!viewDetailsInvoice} onOpenChange={(open) => !open && setViewDetailsInvoice(null)}>
-          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <AppDialog
+          open={!!viewDetailsInvoice}
+          onOpenChange={(open) => !open && setViewDetailsInvoice(null)}
+          title="Invoice Details"
+          description={viewDetailsInvoice ? `${viewDetailsInvoice.invoice} • ${viewDetailsInvoice.date} • ${viewDetailsInvoice.customer}` : ""}
+          maxWidthClass="sm:max-w-2xl"
+        >
             {viewDetailsInvoice && (
               <>
-                <DialogHeader>
-                  <DialogTitle>Invoice Details</DialogTitle>
-                  <DialogDescription>
-                    {viewDetailsInvoice.invoice} • {viewDetailsInvoice.date} • {viewDetailsInvoice.customer}
-                  </DialogDescription>
-                </DialogHeader>
                 <DataTable
                   className="my-4"
                   data={viewDetailsInvoice.items}
                   columns={viewDetailsColumns}
                   hideToolbar={true}
                 />
-                <div className="flex justify-end pt-2 border-t">
+                <div className="flex justify-end pt-2 border-t mt-4">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
                     <p className="text-xl font-bold text-emerald-600">${viewDetailsInvoice.totalRevenue.toFixed(2)}</p>
@@ -649,8 +643,7 @@ export default function SalesPage() {
                 </div>
               </>
             )}
-          </DialogContent>
-        </Dialog>
+        </AppDialog>
 
       </div>
 
