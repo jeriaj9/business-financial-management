@@ -7,17 +7,10 @@ import { useAuth } from "@/components/AuthProvider";
 import { useDistributors } from "@/lib/hooks";
 import { Plus, Search, Filter, MoreHorizontal, FileText, Phone, Mail, Eye, DollarSign, TrendingUp, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { SelectField } from "@/components/ui/select-field";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { AppDialog } from "@/components/ui/app-dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -284,37 +277,24 @@ export default function DistributorsPage() {
           }
         >
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Business Name</Label>
-                <Input id="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Acme Corp" />
-              </div>
+              <FormField id="name" label="Business Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Acme Corp" />
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="contact">Contact Person</Label>
-                  <Input id="contact" value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} placeholder="John Doe" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(809) 555-0000" />
-                </div>
+                <FormField id="contact" label="Contact Person" value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} placeholder="John Doe" />
+                <FormField id="phone" label="Phone" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(809) 555-0000" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="john@example.com" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="tier">Pricing Tier</Label>
-                <Select value={formData.tier} onValueChange={v => setFormData({...formData, tier: v || "Standard"})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Standard">Standard (20% Margin)</SelectItem>
-                    <SelectItem value="Gold">Gold (30% Margin)</SelectItem>
-                    <SelectItem value="Platinum">Platinum (40% Margin)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <FormField id="email" type="email" label="Email Address" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="john@example.com" />
+              <SelectField
+                id="tier"
+                label="Pricing Tier"
+                value={formData.tier}
+                onValueChange={v => setFormData({...formData, tier: v || "Standard"})}
+                placeholder="Select tier"
+                options={[
+                  { value: "Standard", label: "Standard (20% Margin)" },
+                  { value: "Gold", label: "Gold (30% Margin)" },
+                  { value: "Platinum", label: "Platinum (40% Margin)" },
+                ]}
+              />
             </div>
         </AppDialog>
         

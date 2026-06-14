@@ -8,6 +8,8 @@ import { usePaginatedSales } from "@/lib/hooks";
 import { Plus, Search, Filter, DollarSign, TrendingUp, ShoppingBag, Store, Trash2, MoreHorizontal, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { SelectField } from "@/components/ui/select-field";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { AppDialog } from "@/components/ui/app-dialog";
 import { Label } from "@/components/ui/label";
@@ -39,14 +41,14 @@ export default function SalesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
   const { data: paginatedData, isLoading: isSalesLoading, mutate: mutateSales } = usePaginatedSales(profile?.company_id, page, 20);
-  
+
   // sales will now hold grouped invoices
   const [sales, setSales] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [viewDetailsInvoice, setViewDetailsInvoice] = useState<any>(null);
   const [editingInvoiceNumber, setEditingInvoiceNumber] = useState<string | null>(null);
   const [isSupportingDataLoading, setIsSupportingDataLoading] = useState(true);
-  
+
   // Data for pricing engine
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [availableMaterials, setAvailableMaterials] = useState<Material[]>([]);
@@ -59,16 +61,16 @@ export default function SalesPage() {
   });
 
   // Form State
-  const [formData, setFormData] = useState({ 
-    date: new Date().toISOString().split('T')[0], 
-    channel: "B2C", 
-    customer: "", 
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    channel: "B2C",
+    customer: "",
     distributorId: "",
-    status: "Paid" 
+    status: "Paid"
   });
-  
+
   // Shopping Cart
-  const [cartItems, setCartItems] = useState<{productId: string, quantity: number}[]>([{productId: "", quantity: 1}]);
+  const [cartItems, setCartItems] = useState<{ productId: string, quantity: number }[]>([{ productId: "", quantity: 1 }]);
 
   useEffect(() => {
     if (paginatedData?.data) {
@@ -90,7 +92,7 @@ export default function SalesPage() {
             totalItems: 0,
           };
         }
-        
+
         grouped[inv].items.push({
           id: s.id,
           productId: s.product_id,
@@ -100,12 +102,12 @@ export default function SalesPage() {
           revenue: Number(s.total_revenue),
           cogs: Number(s.cogs)
         });
-        
+
         grouped[inv].totalRevenue += Number(s.total_revenue);
         grouped[inv].totalCogs += Number(s.cogs);
         grouped[inv].totalItems += Number(s.quantity);
       });
-      
+
       const sortedSales = Object.values(grouped).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setSales(sortedSales);
     }
@@ -184,20 +186,20 @@ export default function SalesPage() {
       distributorId: sale.distributorId || "",
       status: sale.status
     });
-    
+
     // Convert saved items back to cart format
     const newCart = sale.items.map((item: any) => ({
       productId: item.productId,
       quantity: item.quantity
     }));
-    setCartItems(newCart.length > 0 ? newCart : [{productId: "", quantity: 1}]);
-    
+    setCartItems(newCart.length > 0 ? newCart : [{ productId: "", quantity: 1 }]);
+
     setIsAddOpen(true);
   };
 
   const handleDeleteInvoice = async (invoiceNumber: string) => {
     if (!confirm(`Are you sure you want to delete invoice ${invoiceNumber}? This action cannot be undone.`)) return;
-    
+
     const invoiceToDelete = sales.find(s => s.invoice === invoiceNumber);
     if (!invoiceToDelete) return;
 
@@ -227,12 +229,12 @@ export default function SalesPage() {
 
   const handleAddSale = async () => {
     const invoiceNumber = editingInvoiceNumber || `INV-${Date.now()}`;
-    
+
     // If editing, delete old rows first to replace with new cart
     if (editingInvoiceNumber) {
       const invoiceToDelete = sales.find(s => s.invoice === editingInvoiceNumber);
       await supabase.from('sales').delete().eq('invoice_number', editingInvoiceNumber).eq('company_id', profile?.company_id);
-      
+
       // Revert stock for the deleted edit so we can cleanly subtract the new cart
       if (invoiceToDelete) {
         for (const item of invoiceToDelete.items) {
@@ -240,7 +242,7 @@ export default function SalesPage() {
             const { data: dbProduct } = await supabase.from('products').select('current_stock').eq('id', item.productId).single();
             if (dbProduct) {
               await supabase.from('products').update({ current_stock: Number(dbProduct.current_stock) + item.quantity }).eq('id', item.productId);
-              
+
               // Remove the old transaction log so we don't clutter the history
               await supabase.from('inventory_transactions')
                 .delete()
@@ -252,14 +254,14 @@ export default function SalesPage() {
         }
       }
     }
-    
+
     // Build insert payload for all valid cart items
     const inserts = cartTotals.filter(c => c.productId).map(c => ({
       invoice_number: invoiceNumber,
       sale_date: formData.date,
       channel: formData.channel,
-      customer_name: formData.channel === 'B2B' 
-        ? availableDistributors.find(d => d.id === formData.distributorId)?.name || formData.customer 
+      customer_name: formData.channel === 'B2B'
+        ? availableDistributors.find(d => d.id === formData.distributorId)?.name || formData.customer
         : formData.customer,
       distributor_id: formData.channel === 'B2B' && formData.distributorId ? formData.distributorId : null,
       product_id: c.productId,
@@ -300,18 +302,18 @@ export default function SalesPage() {
     setIsAddOpen(false);
     setEditingInvoiceNumber(null);
     setFormData({ date: new Date().toISOString().split('T')[0], channel: "B2C", customer: "", distributorId: "", status: "Paid" });
-    setCartItems([{productId: "", quantity: 1}]);
+    setCartItems([{ productId: "", quantity: 1 }]);
   };
 
   // Derive cart totals dynamically based on pricing engine
   const cartTotals = cartItems.map(item => {
     const product = availableProducts.find(p => p.id === item.productId);
     const costs = calculateCosts(product, availableMaterials, globalSettings);
-    
+
     // Automatically switch price based on sales channel
     const unitPrice = formData.channel === 'B2B' ? costs.distributorPrice : costs.retailPrice;
     const cogs = costs.totalCost;
-    
+
     return {
       productId: item.productId,
       quantity: item.quantity,
@@ -335,29 +337,44 @@ export default function SalesPage() {
     {
       header: "Product",
       cell: (item, index) => (
-        <Select value={item.productId} onValueChange={v => {
-          const newItems = [...cartItems];
-          newItems[index].productId = v || "";
-          setCartItems(newItems);
-        }}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a product">
-              {item.productId ? availableProducts.find(p => p.id === item.productId)?.name : "Select a product"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {availableProducts.map(p => (
-              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        // <Select value={item.productId} onValueChange={v => {
+        //   const newItems = [...cartItems];
+        //   newItems[index].productId = v || "";
+        //   setCartItems(newItems);
+        // }}>
+        //   <SelectTrigger>
+        //     <SelectValue placeholder="Select a product">
+        //       {item.productId ? availableProducts.find(p => p.id === item.productId)?.name : "Select a product"}
+        //     </SelectValue>
+        //   </SelectTrigger>
+        //   <SelectContent>
+        //     {availableProducts.map(p => (
+        //       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+        //     ))}
+        //   </SelectContent>
+        // </Select>
+
+
+        //new select
+        <SelectField
+          id={`product-${index}`}
+          value={item.productId ? availableProducts.find(p => p.id === item.productId)?.name : "Select a product"}
+          onValueChange={v => {
+            const newItems = [...cartItems];
+            newItems[index].productId = v || "";
+            setCartItems(newItems);
+          }}
+          placeholder="Select a product"
+          options={availableProducts.map(p => ({ value: p.id, label: p.name }))}
+        />
+        //new select
       )
     },
     {
       header: "Qty",
       className: "w-[100px]",
       cell: (item, index) => (
-        <Input type="number" min="1" value={item.quantity} onChange={e => {
+        <FormField type="number" min="1" value={item.quantity} onChange={e => {
           const newItems = [...cartItems];
           newItems[index].quantity = parseInt(e.target.value) || 0;
           setCartItems(newItems);
@@ -451,7 +468,7 @@ export default function SalesPage() {
     {
       header: "Revenue",
       className: "text-right font-medium",
-      cell: (item) => `$${item.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`
+      cell: (item) => `$${item.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
     },
     {
       header: "Status",
@@ -504,7 +521,7 @@ export default function SalesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Sales & Revenue</h1>
           <p className="text-muted-foreground mt-1">Register new sales and monitor profit margins.</p>
         </div>
-        
+
         <Button onClick={() => setIsAddOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Register Sale
@@ -517,7 +534,7 @@ export default function SalesPage() {
             if (!open) {
               setEditingInvoiceNumber(null);
               setFormData({ date: new Date().toISOString().split('T')[0], channel: "B2C", customer: "", distributorId: "", status: "Paid" });
-              setCartItems([{productId: "", quantity: 1}]);
+              setCartItems([{ productId: "", quantity: 1 }]);
             }
           }}
           title={editingInvoiceNumber ? `Edit Sale: ${editingInvoiceNumber}` : "Register New Sale"}
@@ -532,93 +549,83 @@ export default function SalesPage() {
             </>
           }
         >
-            <div className="grid gap-6 py-4">
-              
-              {/* Sale Details */}
-              <div className="grid gap-4 bg-muted/50 p-4 rounded-lg border">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="date">Date</Label>
-                    <Input id="date" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="channel">Sales Channel</Label>
-                    <Select value={formData.channel} onValueChange={v => setFormData({...formData, channel: v || "B2C"})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select channel" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="B2C">B2C (Direct to Consumer)</SelectItem>
-                        <SelectItem value="B2B">B2B (Distributor/Wholesale)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="customer">{formData.channel === 'B2B' ? 'Distributor' : 'Customer Name'}</Label>
-                    {formData.channel === 'B2B' ? (
-                      <Select value={formData.distributorId} onValueChange={v => setFormData({...formData, distributorId: v || ""})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a distributor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableDistributors.map(d => (
-                            <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input id="customer" value={formData.customer} onChange={e => setFormData({...formData, customer: e.target.value})} placeholder="e.g. Jane Doe" />
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="status">Payment Status</Label>
-                    <Select value={formData.status} onValueChange={v => setFormData({...formData, status: v || "Paid"})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Paid">Paid</SelectItem>
-                        <SelectItem value="Pending">Pending / Invoiced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
+          <div className="grid gap-6 py-4">
 
-              {/* Cart Items */}
-              <div className="grid gap-4">
-                <div className="flex justify-between items-center">
-                  <Label className="text-base font-semibold">Products (Line Items)</Label>
-                  <Button variant="outline" size="sm" onClick={() => setCartItems([...cartItems, {productId: "", quantity: 1}])}>
-                    <Plus className="h-3 w-3 mr-2" />
-                    Add Item
-                  </Button>
-                </div>
-                
-                <DataTable
-                  data={cartItems}
-                  columns={cartColumns}
-                  hideToolbar={true}
+            {/* Sale Details */}
+            <div className="grid gap-4 bg-muted/50 p-4 rounded-lg border">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField id="date" type="date" label="Date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                <SelectField
+                  id="channel"
+                  label="Sales Channel"
+                  value={formData.channel}
+                  onValueChange={v => setFormData({ ...formData, channel: v || "B2C" })}
+                  placeholder="Select channel"
+                  options={[
+                    { value: "B2C", label: "B2C (Direct to Consumer)" },
+                    { value: "B2B", label: "B2B (Distributor/Wholesale)" },
+                  ]}
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                {formData.channel === 'B2B' ? (
+                  <SelectField
+                    id="distributor"
+                    label="Distributor"
+                    value={formData.distributorId}
+                    onValueChange={v => setFormData({ ...formData, distributorId: v || "" })}
+                    placeholder="Select a distributor"
+                    options={availableDistributors.map(d => ({ value: d.id, label: d.name }))}
+                  />
+                ) : (
+                  <FormField id="customer" label="Customer Name" value={formData.customer} onChange={e => setFormData({ ...formData, customer: e.target.value })} placeholder="e.g. Jane Doe" />
+                )}
+                <SelectField
+                  id="status"
+                  label="Payment Status"
+                  value={formData.status}
+                  onValueChange={v => setFormData({ ...formData, status: v || "Paid" })}
+                  placeholder="Select status"
+                  options={[
+                    { value: "Paid", label: "Paid" },
+                    { value: "Pending", label: "Pending / Invoiced" },
+                  ]}
+                />
+              </div>
+            </div>
 
-              {/* Totals Summary */}
-              <div className="flex flex-col items-end gap-1 text-sm bg-primary/5 p-4 rounded-lg border border-primary/10">
-                <div className="flex justify-between w-64">
-                  <span className="text-muted-foreground">Subtotal COGS:</span>
-                  <span>${grandTotalCogs.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between w-64 font-bold text-lg border-t pt-1 mt-1">
-                  <span>Grand Total:</span>
-                  <span className="text-emerald-600">${grandTotalRevenue.toFixed(2)}</span>
-                </div>
+            {/* Cart Items */}
+            <div className="grid gap-4">
+              <div className="flex justify-between items-center">
+                <Label className="text-base font-semibold">Products (Line Items)</Label>
+                <Button variant="outline" size="sm" onClick={() => setCartItems([...cartItems, { productId: "", quantity: 1 }])}>
+                  <Plus className="h-3 w-3 mr-2" />
+                  Add Item
+                </Button>
               </div>
 
+              <DataTable
+                data={cartItems}
+                columns={cartColumns}
+                hideToolbar={true}
+              />
             </div>
+
+            {/* Totals Summary */}
+            <div className="flex flex-col items-end gap-1 text-sm bg-primary/5 p-4 rounded-lg border border-primary/10">
+              <div className="flex justify-between w-64">
+                <span className="text-muted-foreground">Subtotal COGS:</span>
+                <span>${grandTotalCogs.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between w-64 font-bold text-lg border-t pt-1 mt-1">
+                <span>Grand Total:</span>
+                <span className="text-emerald-600">${grandTotalRevenue.toFixed(2)}</span>
+              </div>
+            </div>
+
+          </div>
         </AppDialog>
-        
+
         {/* View Details Modal */}
         <AppDialog
           open={!!viewDetailsInvoice}
@@ -627,22 +634,22 @@ export default function SalesPage() {
           description={viewDetailsInvoice ? `${viewDetailsInvoice.invoice} • ${viewDetailsInvoice.date} • ${viewDetailsInvoice.customer}` : ""}
           maxWidthClass="sm:max-w-2xl"
         >
-            {viewDetailsInvoice && (
-              <>
-                <DataTable
-                  className="my-4"
-                  data={viewDetailsInvoice.items}
-                  columns={viewDetailsColumns}
-                  hideToolbar={true}
-                />
-                <div className="flex justify-end pt-2 border-t mt-4">
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Total Revenue</p>
-                    <p className="text-xl font-bold text-emerald-600">${viewDetailsInvoice.totalRevenue.toFixed(2)}</p>
-                  </div>
+          {viewDetailsInvoice && (
+            <>
+              <DataTable
+                className="my-4"
+                data={viewDetailsInvoice.items}
+                columns={viewDetailsColumns}
+                hideToolbar={true}
+              />
+              <div className="flex justify-end pt-2 border-t mt-4">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  <p className="text-xl font-bold text-emerald-600">${viewDetailsInvoice.totalRevenue.toFixed(2)}</p>
                 </div>
-              </>
-            )}
+              </div>
+            </>
+          )}
         </AppDialog>
 
       </div>

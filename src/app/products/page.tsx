@@ -9,9 +9,10 @@ import { Plus, Search, Filter, PackageOpen, ArrowRight, DollarSign, ListPlus, Ca
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
+import { SelectField } from "@/components/ui/select-field";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { AppDialog } from "@/components/ui/app-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateCosts, GlobalSettings, Material } from "@/lib/pricing";
 
@@ -350,19 +351,10 @@ export default function ProductsPage() {
           }
         >
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>Product Name</Label>
-                <Input value={newProductForm.name} onChange={e => setNewProductForm({...newProductForm, name: e.target.value})} placeholder="e.g. Lavender Candle" />
-              </div>
+              <FormField label="Product Name" value={newProductForm.name} onChange={e => setNewProductForm({...newProductForm, name: e.target.value})} placeholder="e.g. Lavender Candle" />
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>SKU</Label>
-                  <Input value={newProductForm.sku} onChange={e => setNewProductForm({...newProductForm, sku: e.target.value})} placeholder="CND-001" />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Category</Label>
-                  <Input value={newProductForm.category} onChange={e => setNewProductForm({...newProductForm, category: e.target.value})} placeholder="Candle" />
-                </div>
+                <FormField label="SKU" value={newProductForm.sku} onChange={e => setNewProductForm({...newProductForm, sku: e.target.value})} placeholder="CND-001" />
+                <FormField label="Category" value={newProductForm.category} onChange={e => setNewProductForm({...newProductForm, category: e.target.value})} placeholder="Candle" />
               </div>
             </div>
         </AppDialog>
@@ -459,19 +451,10 @@ export default function ProductsPage() {
                 }
               >
                   <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label>Product Name</Label>
-                      <Input value={editProductForm.name} onChange={e => setEditProductForm({...editProductForm, name: e.target.value})} />
-                    </div>
+                    <FormField label="Product Name" value={editProductForm.name} onChange={e => setEditProductForm({...editProductForm, name: e.target.value})} />
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label>SKU</Label>
-                        <Input value={editProductForm.sku} onChange={e => setEditProductForm({...editProductForm, sku: e.target.value})} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Category</Label>
-                        <Input value={editProductForm.category} onChange={e => setEditProductForm({...editProductForm, category: e.target.value})} />
-                      </div>
+                      <FormField label="SKU" value={editProductForm.sku} onChange={e => setEditProductForm({...editProductForm, sku: e.target.value})} />
+                      <FormField label="Category" value={editProductForm.category} onChange={e => setEditProductForm({...editProductForm, category: e.target.value})} />
                     </div>
                   </div>
               </AppDialog>
@@ -569,25 +552,17 @@ export default function ProductsPage() {
                     }
                   >
                       <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                          <Label>Raw Material</Label>
-                          <Select value={newIngredientForm.materialId} onValueChange={v => setNewIngredientForm({...newIngredientForm, materialId: v || ""})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select raw material">
-                                {newIngredientForm.materialId ? availableMaterials.find(m => m.id === newIngredientForm.materialId)?.name : "Select raw material"}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableMaterials.map(m => (
-                                <SelectItem key={m.id} value={m.id}>{m.name} (${m.cost}/{m.unit})</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label>Quantity per Batch</Label>
-                          <Input type="number" value={newIngredientForm.quantity} onChange={e => setNewIngredientForm({...newIngredientForm, quantity: e.target.value})} placeholder="0" />
-                        </div>
+                        <SelectField 
+                          label="Raw Material"
+                          value={newIngredientForm.materialId}
+                          onValueChange={v => setNewIngredientForm({...newIngredientForm, materialId: v || ""})}
+                          placeholder="Select raw material"
+                          options={availableMaterials.map(m => ({
+                            value: m.id,
+                            label: `${m.name} ($${m.cost}/${m.unit})`
+                          }))}
+                        />
+                        <FormField type="number" label="Quantity per Batch" value={newIngredientForm.quantity} onChange={e => setNewIngredientForm({...newIngredientForm, quantity: e.target.value})} placeholder="0" />
                       </div>
                   </AppDialog>
                 </CardHeader>
@@ -608,22 +583,10 @@ export default function ProductsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-                    <div className="space-y-2">
-                      <Label>Batch Size</Label>
-                      <Input type="number" value={paramsForm.batchSize} onChange={(e) => setParamsForm({...paramsForm, batchSize: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Production Time (Hours)</Label>
-                      <Input type="number" value={paramsForm.productionTimeHours} onChange={(e) => setParamsForm({...paramsForm, productionTimeHours: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Target Retail Price ($)</Label>
-                      <Input type="number" value={paramsForm.targetPrice} onChange={(e) => setParamsForm({...paramsForm, targetPrice: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Current Stock</Label>
-                      <Input type="number" value={paramsForm.currentStock} onChange={(e) => setParamsForm({...paramsForm, currentStock: e.target.value})} />
-                    </div>
+                    <FormField type="number" label="Batch Size" value={paramsForm.batchSize} onChange={(e) => setParamsForm({...paramsForm, batchSize: e.target.value})} />
+                    <FormField type="number" label="Production Time (Hours)" value={paramsForm.productionTimeHours} onChange={(e) => setParamsForm({...paramsForm, productionTimeHours: e.target.value})} />
+                    <FormField type="number" label="Target Retail Price ($)" value={paramsForm.targetPrice} onChange={(e) => setParamsForm({...paramsForm, targetPrice: e.target.value})} />
+                    <FormField type="number" label="Current Stock" value={paramsForm.currentStock} onChange={(e) => setParamsForm({...paramsForm, currentStock: e.target.value})} />
                   </div>
                   <div className="mt-6 flex justify-end">
                     <p className="text-xs text-muted-foreground mr-4 self-center italic">Changes are local until you click "Save Changes" at the top.</p>

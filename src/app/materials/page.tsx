@@ -7,17 +7,10 @@ import { useAuth } from "@/components/AuthProvider";
 import { useMaterials } from "@/lib/hooks";
 import { Plus, Search, Filter, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { AppDialog } from "@/components/ui/app-dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select-field";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -236,88 +229,76 @@ export default function MaterialsPage() {
           }
         >
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Material Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Soy Wax 464"
+              <FormField
+                id="name"
+                label="Material Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g. Soy Wax 464"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <SelectField
+                  id="category"
+                  label="Category"
+                  value={formData.category}
+                  onValueChange={(v) => setFormData({ ...formData, category: v || "" })}
+                  placeholder="Select type"
+                  options={[
+                    { value: "wax", label: "Wax" },
+                    { value: "fragrance", label: "Fragrance" },
+                    { value: "packaging", label: "Packaging" },
+                    { value: "wick", label: "Wick" },
+                    { value: "container", label: "Container" },
+                    { value: "other", label: "Other" },
+                  ]}
+                />
+                <SelectField
+                  id="unit"
+                  label="Unit of Measure"
+                  value={formData.unit}
+                  onValueChange={(v) => setFormData({ ...formData, unit: v || "" })}
+                  placeholder="e.g. lb"
+                  options={[
+                    { value: "lb", label: "Pounds (lb)" },
+                    { value: "oz", label: "Ounces (oz)" },
+                    { value: "kg", label: "Kilograms (kg)" },
+                    { value: "g", label: "Grams (g)" },
+                    { value: "unit", label: "Units / Pieces" },
+                  ]}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v || "" })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="wax">Wax</SelectItem>
-                      <SelectItem value="fragrance">Fragrance</SelectItem>
-                      <SelectItem value="packaging">Packaging</SelectItem>
-                      <SelectItem value="wick">Wick</SelectItem>
-                      <SelectItem value="container">Container</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="unit">Unit of Measure</Label>
-                  <Select value={formData.unit} onValueChange={(v) => setFormData({ ...formData, unit: v || "" })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="e.g. lb" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lb">Pounds (lb)</SelectItem>
-                      <SelectItem value="oz">Ounces (oz)</SelectItem>
-                      <SelectItem value="kg">Kilograms (kg)</SelectItem>
-                      <SelectItem value="g">Grams (g)</SelectItem>
-                      <SelectItem value="unit">Units / Pieces</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <FormField
+                  id="cost"
+                  type="number"
+                  label="Cost per Unit (DOP)"
+                  value={formData.cost}
+                  onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                  placeholder="0.00"
+                />
+                <FormField
+                  id="supplier"
+                  label="Supplier"
+                  value={formData.supplier}
+                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  placeholder="Supplier name"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="cost">Cost per Unit (DOP)</Label>
-                  <Input
-                    id="cost"
-                    type="number"
-                    value={formData.cost}
-                    onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="supplier">Supplier</Label>
-                  <Input
-                    id="supplier"
-                    value={formData.supplier}
-                    onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                    placeholder="Supplier name"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="stock">Current Stock</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="reorder">Reorder Point</Label>
-                  <Input
-                    id="reorder"
-                    type="number"
-                    value={formData.reorder}
-                    onChange={(e) => setFormData({ ...formData, reorder: e.target.value })}
-                  />
-                </div>
+                <FormField
+                  id="stock"
+                  type="number"
+                  label="Current Stock"
+                  value={formData.stock}
+                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                />
+                <FormField
+                  id="reorder"
+                  type="number"
+                  label="Reorder Point"
+                  value={formData.reorder}
+                  onChange={(e) => setFormData({ ...formData, reorder: e.target.value })}
+                />
               </div>
             </div>
         </AppDialog>

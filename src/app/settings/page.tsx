@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Save, Copy, UserPlus, Shield, ShieldCheck, Eye } from "lucide-react";
@@ -160,72 +161,49 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="currency">System Currency</Label>
-                  <Input 
-                    id="currency" 
-                    value={settings.currency} 
-                    onChange={(e) => setSettings({...settings, currency: e.target.value})}
-                  />
-                  <p className="text-xs text-muted-foreground">Default currency for all reports.</p>
-                </div>
+                <FormField
+                  id="currency"
+                  label="System Currency"
+                  description="Default currency for all reports."
+                  value={settings.currency}
+                  onChange={(e) => setSettings({...settings, currency: e.target.value})}
+                />
                 
-                <div className="space-y-2">
-                  <Label htmlFor="labor">Labor Cost Per Hour</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground">{settings.currency}</span>
-                    <Input 
-                      id="labor" 
-                      type="number" 
-                      className="pl-12"
-                      value={settings.laborCostPerHour} 
-                      onChange={(e) => setSettings({...settings, laborCostPerHour: Number(e.target.value)})}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">Used to calculate production costs based on time.</p>
-                </div>
+                <FormField
+                  id="labor"
+                  type="number"
+                  label={`Labor Cost Per Hour (${settings.currency})`}
+                  description="Used to calculate production costs based on time."
+                  value={settings.laborCostPerHour}
+                  onChange={(e) => setSettings({...settings, laborCostPerHour: Number(e.target.value)})}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="dist_margin">Distributor Margin (%)</Label>
-                  <div className="relative">
-                    <Input 
-                      id="dist_margin" 
-                      type="number"
-                      value={settings.distributorMargin} 
-                      onChange={(e) => setSettings({...settings, distributorMargin: Number(e.target.value)})}
-                    />
-                    <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
-                  </div>
-                </div>
+                <FormField
+                  id="dist_margin"
+                  type="number"
+                  label="Distributor Margin (%)"
+                  value={settings.distributorMargin}
+                  onChange={(e) => setSettings({...settings, distributorMargin: Number(e.target.value)})}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="promo_discount">Max Promo Discount (%)</Label>
-                  <div className="relative">
-                    <Input 
-                      id="promo_discount" 
-                      type="number"
-                      value={settings.promotionalDiscount} 
-                      onChange={(e) => setSettings({...settings, promotionalDiscount: Number(e.target.value)})}
-                    />
-                    <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
-                  </div>
-                </div>
+                <FormField
+                  id="promo_discount"
+                  type="number"
+                  label="Max Promo Discount (%)"
+                  value={settings.promotionalDiscount}
+                  onChange={(e) => setSettings({...settings, promotionalDiscount: Number(e.target.value)})}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="indirect_cost">Indirect Cost Reserve (%)</Label>
-                  <div className="relative">
-                    <Input 
-                      id="indirect_cost" 
-                      type="number"
-                      value={settings.indirectCostReserve} 
-                      onChange={(e) => setSettings({...settings, indirectCostReserve: Number(e.target.value)})}
-                    />
-                    <span className="absolute right-3 top-2.5 text-muted-foreground">%</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Buffer for uncalculated overhead.</p>
-                </div>
+                <FormField
+                  id="indirect_cost"
+                  type="number"
+                  label="Indirect Cost Reserve (%)"
+                  description="Buffer for uncalculated overhead."
+                  value={settings.indirectCostReserve}
+                  onChange={(e) => setSettings({...settings, indirectCostReserve: Number(e.target.value)})}
+                />
               </div>
             </CardContent>
           </Card>

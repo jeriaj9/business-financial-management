@@ -7,17 +7,10 @@ import { usePaginatedExpenses } from "@/lib/hooks";
 import { PageLoader } from "@/components/PageLoader";
 import { Plus, Search, Filter, DollarSign, TrendingDown, Receipt, Calendar, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { SelectField } from "@/components/ui/select-field";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { AppDialog } from "@/components/ui/app-dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -204,40 +197,27 @@ export default function ExpensesPage() {
         >
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input id="date" type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v || "" })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Rent">Rent</SelectItem>
-                      <SelectItem value="Utilities">Utilities</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Payroll">Payroll</SelectItem>
-                      <SelectItem value="Logistics">Logistics</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <FormField id="date" type="date" label="Date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                <SelectField
+                  id="category"
+                  label="Category"
+                  value={formData.category}
+                  onValueChange={v => setFormData({ ...formData, category: v || "" })}
+                  placeholder="Select type"
+                  options={[
+                    { value: "Rent", label: "Rent" },
+                    { value: "Utilities", label: "Utilities" },
+                    { value: "Marketing", label: "Marketing" },
+                    { value: "Payroll", label: "Payroll" },
+                    { value: "Logistics", label: "Logistics" },
+                    { value: "Other", label: "Other" },
+                  ]}
+                />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="desc">Description</Label>
-                <Input id="desc" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="e.g. Facebook Ads" />
-              </div>
+              <FormField id="desc" label="Description" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="e.g. Facebook Ads" />
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="amount">Amount (DOP)</Label>
-                  <Input id="amount" type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="ref">Reference / Receipt #</Label>
-                  <Input id="ref" value={formData.reference} onChange={e => setFormData({ ...formData, reference: e.target.value })} placeholder="INV-1234" />
-                </div>
+                <FormField id="amount" type="number" label="Amount (DOP)" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" />
+                <FormField id="ref" label="Reference / Receipt #" value={formData.reference} onChange={e => setFormData({ ...formData, reference: e.target.value })} placeholder="INV-1234" />
               </div>
             </div>
         </AppDialog>

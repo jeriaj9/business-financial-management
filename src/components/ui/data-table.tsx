@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { FormField } from "@/components/ui/form-field"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -24,19 +24,19 @@ export interface DataTableProps<T> {
   columns: ColumnDef<T>[]
   isLoading?: boolean
   emptyMessage?: React.ReactNode
-  
+
   // Toolbar Configuration
   hideToolbar?: boolean
   searchPlaceholder?: string
   searchValue?: string
   onSearchChange?: (value: string) => void
   filterAction?: React.ReactNode
-  
+
   // Pagination Configuration
   page?: number
   onPageChange?: (page: number) => void
   hasMore?: boolean
-  
+
   className?: string
 }
 
@@ -61,7 +61,7 @@ export function DataTable<T>({
         <div className="p-4 border-b flex items-center justify-between gap-4 shrink-0">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
+            <FormField
               type="search"
               placeholder={searchPlaceholder}
               className="pl-9"
@@ -101,12 +101,12 @@ export function DataTable<T>({
                 data.map((item, rowIndex) => (
                   <TableRow key={rowIndex}>
                     {columns.map((column, colIndex) => {
-                      const cellContent = column.cell 
-                        ? column.cell(item, rowIndex) 
-                        : column.accessorKey 
-                          ? (item as any)[column.accessorKey] 
+                      const cellContent = column.cell
+                        ? column.cell(item, rowIndex)
+                        : column.accessorKey
+                          ? (item as any)[column.accessorKey]
                           : null;
-                          
+
                       return (
                         <TableCell key={colIndex} className={column.className}>
                           {cellContent}
@@ -127,18 +127,18 @@ export function DataTable<T>({
             Showing page {page + 1}
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onPageChange(Math.max(0, page - 1))} 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(Math.max(0, page - 1))}
               disabled={page === 0}
             >
               Previous
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onPageChange(page + 1)} 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page + 1)}
               disabled={!hasMore}
             >
               Next
