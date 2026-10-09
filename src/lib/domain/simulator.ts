@@ -203,8 +203,9 @@ export function runScenario(baseline: SimulatorBaseline, scenario: Scenario): Si
   }
 
   // 2. Channel shift: move a share of units from one channel to another
-  if (scenario.channelShift && scenario.channelShift.pct > 0) {
-    const { fromChannelId, toChannelId, pct } = scenario.channelShift;
+  const shift = scenario.channelShift;
+  if (shift && shift.pct > 0 && shift.fromChannelId && shift.toChannelId && shift.fromChannelId !== shift.toChannelId) {
+    const { fromChannelId, toChannelId, pct } = shift;
     const toChannel = channelById.get(toChannelId);
     for (const row of [...rows.values()]) {
       if (row.channelId !== fromChannelId || row.units <= 0) continue;

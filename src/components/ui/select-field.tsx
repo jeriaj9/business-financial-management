@@ -48,8 +48,9 @@ export function SelectField({
     <div className={cn("grid gap-2", containerClassName)}>
       {label && <Label htmlFor={selectId}>{label}</Label>}
       <Select
-        value={value}
-        onValueChange={(v: any) => onValueChange?.(v)}
+        value={value === "" || value === undefined ? null : value}
+        onValueChange={(v: unknown) => onValueChange?.((v as string | null) ?? "")}
+        items={options.map((o) => ({ value: o.value, label: o.label }))}
         {...props}
       >
         <SelectTrigger

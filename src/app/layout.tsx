@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { brand } from "@/config/brand";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,12 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Business Management",
-  description: "Business Management System",
+  title: {
+    default: `${brand.name} — ${brand.tagline}`,
+    template: `%s · ${brand.name}`,
+  },
+  description: brand.shortDescription,
 };
-
-import { AuthProvider } from "@/components/AuthProvider";
-import { ClientLayoutWrapper } from "@/components/ClientLayoutWrapper";
 
 export default function RootLayout({
   children,
@@ -27,14 +30,12 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="flex h-screen overflow-hidden bg-background">
+      <body className="min-h-dvh bg-background">
         <AuthProvider>
-          <ClientLayoutWrapper>
-            {children}
-          </ClientLayoutWrapper>
+          <Toaster>{children}</Toaster>
         </AuthProvider>
       </body>
     </html>
