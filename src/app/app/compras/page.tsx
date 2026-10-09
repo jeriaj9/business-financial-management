@@ -144,7 +144,7 @@ export default function PurchasesPage() {
               { key: "number", header: "Compra", cell: (p: any) => <span className="font-medium">{p.number}</span> },
               { key: "date", header: "Fecha", sortValue: (p: any) => p.purchase_date, cell: (p: any) => formatDate(p.purchase_date) },
               { key: "supplier", header: "Proveedor", cell: (p: any) => p.suppliers?.name ?? "Sin proveedor" },
-              { key: "items", header: "Materias primas", className: "whitespace-normal min-w-48", cell: (p: any) => <span className="text-xs text-muted-foreground">{p.purchase_lines.map((l: any) => l.materials?.name).join(", ")}</span> },
+              { key: "items", header: "Materias primas", className: "hidden whitespace-normal min-w-48 xl:table-cell", cell: (p: any) => <span className="text-xs text-muted-foreground">{p.purchase_lines.map((l: any) => l.materials?.name).join(", ")}</span> },
               { key: "total", header: "Total", align: "right", sortValue: (p: any) => Number(p.total), cell: (p: any) => formatMoney(Number(p.total), currency) },
               { key: "balance", header: "Saldo", align: "right", cell: (p: any) => (p.status === "void" ? "—" : formatMoney(Number(p.balance), currency)) },
               { key: "status", header: "Estado", cell: (p: any) => <Badge tone={statusTone[p.status_label as keyof typeof statusTone]}>{p.status === "void" ? "Anulada" : es.paymentStatus[p.status_label as keyof typeof es.paymentStatus]}</Badge> },

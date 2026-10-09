@@ -19,7 +19,7 @@ export function SwitchField({ checked, onCheckedChange, label, description, disa
         <span className="text-sm font-medium leading-none">{label}</span>
         {description && <span className="text-xs text-muted-foreground">{description}</span>}
       </label>
-      <span className="relative inline-flex shrink-0">
+      <label htmlFor={id} className={cn("relative inline-flex shrink-0", disabled ? "cursor-not-allowed" : "cursor-pointer")}>
         <input
           id={id}
           type="checkbox"
@@ -37,7 +37,7 @@ export function SwitchField({ checked, onCheckedChange, label, description, disa
           aria-hidden
           className="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background shadow transition-transform peer-checked:translate-x-4"
         />
-      </span>
+      </label>
     </div>
   );
 }
