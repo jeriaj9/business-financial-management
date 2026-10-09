@@ -30,7 +30,8 @@ type AuthContextType = {
   portalAccounts: PortalAccount[];
   loading: boolean;
   refresh: () => Promise<void>;
-  signOut: () => Promise<void>;
+  /** Signs out and navigates to `redirectTo` (default: the login page). */
+  signOut: (redirectTo?: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -155,10 +156,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [applyIdentity]);
 
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+  const signOut = useCallback(async (redirectTo: string = '/login') => {
+    // A stale session (e.g. revoked on the server) can make the remote sign-out fail; clear it locally anyway
+    const { error } = await supabase.auth.signOut();
+    if (error) await supabase.auth.signOut({ scope: 'local' });
     await applyIdentity(null);
-    window.location.href = '/login';
+    window.location.href = redirectTo;
   }, [applyIdentity]);
 
   return (

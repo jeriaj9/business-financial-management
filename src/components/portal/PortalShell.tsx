@@ -67,7 +67,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           action={
             <div className="flex gap-2">
               {profile?.company_id && <Button variant="outline" onClick={() => router.push("/app")}>Ir a mi empresa</Button>}
-              <Button variant="outline" onClick={signOut}>Cerrar sesión</Button>
+              <Button variant="outline" onClick={() => signOut()}>Cerrar sesión</Button>
             </div>
           }
         />
@@ -98,7 +98,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                 />
               )}
               {profile?.company_id && <Button variant="ghost" size="sm" onClick={() => router.push("/app")}>Mi empresa</Button>}
-              <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4" /> Salir</Button>
+              <Button variant="ghost" size="sm" onClick={() => signOut()}><LogOut className="h-4 w-4" /> Salir</Button>
             </div>
           </div>
           <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4">

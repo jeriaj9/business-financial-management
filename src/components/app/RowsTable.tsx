@@ -45,16 +45,19 @@ export function RowsTable<T>({ rows, columns, rowKey, empty = "No hay datos para
 
   const hasFooter = columns.some((c) => c.footer !== undefined);
   const align = (a?: string) => (a === "right" ? "text-right" : a === "center" ? "text-center" : "text-left");
+  // A trailing column without header holds row actions: keep it visible while the table scrolls sideways
+  const isActions = (c: RowsColumn<T>, index: number) => index === columns.length - 1 && c.header === "";
+  const stickyClass = "sticky right-0 bg-background shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.6)]";
 
   return (
     <div className={cn("relative w-full overflow-x-auto rounded-xl border", className)}>
       <table className="w-full caption-bottom text-sm">
         <thead className="bg-muted/40">
           <tr className="border-b">
-            {columns.map((c) => {
+            {columns.map((c, index) => {
               const active = sort?.key === c.key;
               return (
-                <th key={c.key} scope="col" className={cn("whitespace-nowrap px-3 font-medium text-muted-foreground", dense ? "h-8" : "h-10", align(c.align), c.className)}>
+                <th key={c.key} scope="col" className={cn("whitespace-nowrap px-3 font-medium text-muted-foreground", dense ? "h-8" : "h-10", align(c.align), isActions(c, index) && "sticky right-0 bg-muted", c.className)}>
                   {c.sortValue ? (
                     <button
                       type="button"
@@ -86,8 +89,19 @@ export function RowsTable<T>({ rows, columns, rowKey, empty = "No hay datos para
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn("border-b last:border-0 transition-colors hover:bg-muted/30", onRowClick && "cursor-pointer", rowClassName?.(row))}
               >
-                {columns.map((c) => (
-                  <td key={c.key} className={cn("px-3 align-middle", dense ? "py-1.5" : "py-2.5", align(c.align), c.align === "right" && "tabular-nums", c.className)}>
+                {columns.map((c, index) => (
+                  <td
+                    key={c.key}
+                    className={cn(
+                      "px-3 align-middle first:min-w-40",
+                      index > 0 && "whitespace-nowrap",
+                      dense ? "py-1.5" : "py-2.5",
+                      align(c.align),
+                      c.align === "right" && "tabular-nums",
+                      isActions(c, index) && stickyClass,
+                      c.className
+                    )}
+                  >
                     {c.cell(row)}
                   </td>
                 ))}
@@ -99,7 +113,7 @@ export function RowsTable<T>({ rows, columns, rowKey, empty = "No hay datos para
           <tfoot className="border-t bg-muted/30 font-medium">
             <tr>
               {columns.map((c) => (
-                <td key={c.key} className={cn("px-3 py-2.5", align(c.align), c.align === "right" && "tabular-nums")}>
+                <td key={c.key} className={cn("px-3 py-2.5", align(c.align), c.align === "right" && "whitespace-nowrap tabular-nums")}>
                   {c.footer}
                 </td>
               ))}

@@ -16,7 +16,7 @@ export function formatMoney(value: number | null | undefined, currency: string =
     });
     moneyFormatters.set(key, formatter);
   }
-  const text = formatter.format(Math.abs(value) < 0.005 && decimals >= 2 ? 0 : value);
+  const text = formatter.format(Math.abs(value) < 0.005 && decimals >= 2 ? 0 : value).replace(/^-/, "\u2212");
   return options?.signed && value > 0 ? `+${text}` : text;
 }
 
@@ -32,15 +32,15 @@ export function formatPercent(value: number | null | undefined, decimals = 1, op
     style: "percent",
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
-  }).format(value);
+  }).format(value).replace(/^-/, "\u2212");
   return options?.signed && value > 0 ? `+${text}` : text;
 }
 
 /** Percentage points, e.g. "+2.4 pts". */
 export function formatPoints(value: number | null | undefined, decimals = 1): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(decimals)} pts`;
+  const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+  return `${sign}${Math.abs(value).toFixed(decimals)} pts`;
 }
 
 export function formatDate(value: string | null | undefined, options?: Intl.DateTimeFormatOptions): string {

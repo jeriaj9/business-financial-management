@@ -139,7 +139,7 @@ export default function InventoryPage() {
               { key: "item", header: "Artículo", cell: (t: any) => names.get(t.item_id)?.name ?? "Artículo eliminado" },
               { key: "type", header: "Movimiento", cell: (t: any) => <Badge tone={IN_TYPES.has(t.transaction_type) ? "success" : "neutral"}>{es.transactionTypes[t.transaction_type] ?? t.transaction_type}</Badge> },
               { key: "qty", header: "Cantidad", align: "right", cell: (t: any) => `${IN_TYPES.has(t.transaction_type) ? "+" : "−"}${formatNumber(Number(t.quantity))} ${names.get(t.item_id)?.unit ?? ""}` },
-              { key: "notes", header: "Detalle", cell: (t: any) => <span className="text-xs text-muted-foreground">{t.notes}</span> },
+              { key: "notes", header: "Detalle", className: "whitespace-normal min-w-48", cell: (t: any) => <span className="text-xs text-muted-foreground">{t.notes}</span> },
             ]}
           />
         </TabsContent>

@@ -143,7 +143,7 @@ export function insightText(insight: Insight, currency: string): string {
     case "volume":
       return insight.unitsPct === null
         ? `El cambio en unidades vendidas aportó ${signedMoney(insight.amount)}.`
-        : `Vendiste ${formatPercent(insight.unitsPct, 0, { signed: true })} unidades; eso ${insight.amount >= 0 ? "sumó" : "restó"} ${m(Math.abs(insight.amount))}.`;
+        : `Vendiste ${formatPercent(Math.abs(insight.unitsPct), 0)} ${insight.unitsPct >= 0 ? "más" : "menos"} unidades; eso ${insight.amount >= 0 ? "sumó" : "restó"} ${m(Math.abs(insight.amount))}.`;
     case "mix":
       return insight.channelLabel
         ? `La mezcla de productos y canales ${insight.amount >= 0 ? "sumó" : "restó"} ${m(Math.abs(insight.amount))}: ${insight.channelLabel} ganó ${formatPoints(insight.channelSharePts)} de participación en unidades.`

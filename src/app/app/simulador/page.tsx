@@ -99,7 +99,7 @@ export default function SimulatorPage() {
       ) : (
         <div className="grid gap-6 xl:grid-cols-[420px_1fr]" key={version}>
           {/* Levers */}
-          <div className="grid content-start gap-4">
+          <div className="order-2 grid content-start gap-4 xl:order-1">
             <Section title="Escenarios rápidos">
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => reset({ ...emptyScenario, globalPricePct: 0.1, globalVolumePct: -0.05 })}>Subir precios 10% (−5% volumen)</Button>
@@ -178,8 +178,8 @@ export default function SimulatorPage() {
             )}
           </div>
 
-          {/* Results */}
-          <div className="grid content-start gap-4">
+          {/* Results: first on small screens so the effect of each lever is visible */}
+          <div className="order-1 grid content-start gap-4 xl:order-2 xl:sticky xl:top-4 xl:self-start">
             <div className="rounded-xl border bg-card p-5">
               <p className="text-sm text-muted-foreground">Resultado operativo mensual</p>
               <div className="mt-1 flex flex-wrap items-end gap-4">
@@ -200,7 +200,8 @@ export default function SimulatorPage() {
             </div>
 
             <Section title="Mes promedio: hoy vs. escenario">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[420px] text-sm">
                 <thead className="text-muted-foreground">
                   <tr>
                     <th className="pb-2 text-left font-medium" />
@@ -232,6 +233,7 @@ export default function SimulatorPage() {
                   </tr>
                 </tbody>
               </table>
+              </div>
               {s.contributionMargin <= 0 && <Callout tone="danger" className="mt-3">Con este escenario cada venta pierde dinero: no hay volumen que cubra los gastos fijos.</Callout>}
             </Section>
 

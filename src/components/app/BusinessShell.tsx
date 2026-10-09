@@ -142,7 +142,7 @@ export function BusinessShell({ children }: { children: React.ReactNode }) {
                   <Store className="mr-2 h-4 w-4" /> Portal de distribuidor
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={signOut} className="text-red-400">
+              <DropdownMenuItem onClick={() => signOut()} className="text-red-400">
                 <LogOut className="mr-2 h-4 w-4" /> {es.common.signOut}
               </DropdownMenuItem>
             </DropdownMenuContent>

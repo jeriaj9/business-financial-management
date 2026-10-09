@@ -55,6 +55,7 @@ describe("analyzeCostImpact", () => {
     expect(candleRepricing.marginDropPts).toBeCloseTo(5.5);
     expect(candleRepricing.keepMarginRetail).toBeCloseTo(453.33, 2);
     expect(candleRepricing.keepAmountRetail).toBeCloseTo(422);
+    expect(candleRepricing.monthlyGap).toBeCloseTo(200); // same basis as the change's monthly impact
     expect(candleRepricing.needsReview).toBe(true);
     expect(result.totals.productsToReview).toBe(1);
   });

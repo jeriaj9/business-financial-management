@@ -139,15 +139,19 @@ export default function SummaryPage() {
         <StatCard label="Por cobrar" value={formatMoney(view.totalReceivable, currency, { decimals: 0 })} hint={view.overdue > 0 ? `${formatMoney(view.overdue, currency, { decimals: 0 })} vencido` : "Todo al día"} tone={view.overdue > 0 ? "warning" : "neutral"} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
         <Section title="Necesita tu atención">
           {view.alerts.length === 0 ? (
-            <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground"><CheckCircle2 className="h-5 w-5 text-emerald-400" /> Nada urgente. Tus precios, inventario y cobros están en orden.</div>
+            data.sales.length === 0 && data.products.length === 0 ? (
+              <p className="py-6 text-sm text-muted-foreground">Cuando registres tus productos y primeras ventas, aquí verás lo que necesita tu atención: márgenes que bajan, ventas que pierden dinero, producción y compras pendientes, y cobros vencidos.</p>
+            ) : (
+              <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground"><CheckCircle2 className="h-5 w-5 text-emerald-400" /> Nada urgente. Tus precios, inventario y cobros están en orden.</div>
+            )
           ) : (
             <ul className="grid gap-2">
               {view.alerts.map((a) => (
                 <li key={a.key} className={cn("flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between", a.tone === "danger" ? "border-red-500/30" : a.tone === "warning" ? "border-amber-500/30" : "")}>
-                  <div className="flex gap-3">
+                  <div className="flex min-w-0 flex-1 gap-3">
                     <AlertTriangle className={cn("mt-0.5 h-4 w-4 shrink-0", a.tone === "danger" ? "text-red-400" : a.tone === "warning" ? "text-amber-400" : "text-sky-400")} />
                     <div>
                       <p className="text-sm font-medium">{a.title}</p>

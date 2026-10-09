@@ -226,11 +226,11 @@ export default function SalesPage() {
         <TabsContent value="facturas" className="mt-4 grid gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <PeriodPicker value={period} onChange={setPeriod} />
-            <NativeSelect className="w-48" aria-label="Canal" placeholder="Todos los canales" value={channelFilter} onValueChange={setChannelFilter} options={[{ value: "", label: "Todos los canales" }, ...(channels.data ?? []).map((c) => ({ value: c.id, label: c.name }))]} />
+            <NativeSelect className="w-48" aria-label="Canal" value={channelFilter} onValueChange={setChannelFilter} options={[{ value: "", label: "Todos los canales" }, ...(channels.data ?? []).map((c) => ({ value: c.id, label: c.name }))]} />
             <NativeSelect className="w-40" aria-label="Estado" value={statusFilter} onValueChange={setStatusFilter} options={[{ value: "", label: "Todos los estados" }, ...Object.entries(es.paymentStatus).map(([value, label]) => ({ value, label }))]} />
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard label="Ventas netas" value={formatMoney(totalSales, currency)} hint={`${issued.length} facturas`} />
+            <StatCard label="Ventas netas" value={formatMoney(totalSales, currency)} hint={`${issued.length} factura${issued.length === 1 ? "" : "s"}`} />
             <StatCard label="Costo de lo vendido" value={formatMoney(totalCogs, currency)} />
             <StatCard label="Margen bruto" value={formatMoney(totalSales - totalCogs, currency)} hint={formatPercent(totalSales > 0 ? (totalSales - totalCogs) / totalSales : 0)} tone="positive" />
             <StatCard label="Pendiente de cobro" value={formatMoney(issued.reduce((s: number, r: any) => s + Number(r.balance), 0), currency)} />

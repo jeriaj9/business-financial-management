@@ -51,7 +51,7 @@ export default function ProfitabilityPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard label="Ventas netas" value={formatMoney(result.totals.revenue, currency)} hint={`${result.totals.invoices} facturas · ${formatNumber(result.totals.units)} unidades`} />
+            <StatCard label="Ventas netas" value={formatMoney(result.totals.revenue, currency)} hint={`${result.totals.invoices} factura${result.totals.invoices === 1 ? "" : "s"} · ${formatNumber(result.totals.units)} unidades`} />
             <StatCard label="Costo de producto" value={formatMoney(result.totals.cogs, currency)} hint={formatPercent(result.totals.revenue > 0 ? result.totals.cogs / result.totals.revenue : 0) + " de las ventas"} />
             <StatCard label="Costo de vender" value={formatMoney(result.totals.channelCosts, currency)} hint="Comisiones, pagos, envíos" />
             <StatCard label="Contribución" value={formatMoney(result.totals.contribution, currency)} hint={`Margen ${formatPercent(result.totals.margin)}`} tone={result.totals.contribution >= 0 ? "positive" : "negative"} />

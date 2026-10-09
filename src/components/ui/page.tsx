@@ -45,7 +45,7 @@ export function StatCard({
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
         {icon && <span className="text-muted-foreground [&_svg]:h-4 [&_svg]:w-4">{icon}</span>}
       </div>
-      <p className={cn("mt-2 text-2xl font-semibold tabular-nums", toneText[tone])}>{value}</p>
+      <p className={cn("mt-2 text-2xl font-semibold tabular-nums whitespace-nowrap", toneText[tone])}>{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );

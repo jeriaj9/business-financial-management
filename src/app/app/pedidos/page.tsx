@@ -113,7 +113,7 @@ export default function DistributorOrdersPage() {
                   {canEdit && (
                     <div className="mt-4 flex flex-wrap justify-end gap-2">
                       <Button variant="outline" onClick={() => { setRejecting(o); setReason(""); }}>Rechazar</Button>
-                      <Button onClick={() => accept(o)} disabled={busy === o.id}>{busy === o.id ? "Facturando…" : "Aceptar y facturar"}</Button>
+                      <Button onClick={() => accept(o)} disabled={busy === o.id || (shortages.length > 0 && !settings?.allowNegativeStock)}>{busy === o.id ? "Facturando…" : "Aceptar y facturar"}</Button>
                     </div>
                   )}
                 </div>

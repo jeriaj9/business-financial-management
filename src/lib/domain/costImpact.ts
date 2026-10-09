@@ -47,7 +47,7 @@ export interface RepricingSuggestion {
   keepMarginDistributor: number | null;
   keepAmountRetail: number; // price that restores the money margin per unit
   monthlyUnits: number;
-  monthlyGap: number; // margin lost per month at the current price
+  monthlyGap: number; // margin lost per month at the current price (cost of goods sold basis)
   needsReview: boolean;
 }
 
@@ -213,7 +213,7 @@ export function analyzeCostImpact(input: CostImpactInput): CostImpactResult {
         keepMarginDistributor: p.distributorPrice !== null ? round2(p.distributorPrice * costRatio) : null,
         keepAmountRetail: round2(p.retailPrice + (now.full - then.full)),
         monthlyUnits: monthly,
-        monthlyGap: (now.full - then.full) * monthly,
+        monthlyGap: (now.variable - then.variable) * monthly,
         needsReview: marginDropPts >= threshold,
       };
     })

@@ -132,12 +132,15 @@ export default function MonthlyReportPage() {
       )}
 
       {report.materialDrivers.length > 0 && (
-        <Section title="Insumos que movieron tu costo">
+        <Section
+          title="Insumos que cambiaron de precio"
+          description="Tu costo de lo vendido refleja estos aumentos poco a poco, a medida que usas el inventario comprado antes. La última columna muestra el efecto completo en un mes como este, a precio de reposición: es lo que viene."
+        >
           <RowsTable dense rows={report.materialDrivers} rowKey={(m) => m.materialId} columns={[
             { key: "m", header: "Materia prima", cell: (m) => m.materialName },
             { key: "c", header: "Costo antes → ahora", align: "right", cell: (m) => `${formatMoney(m.costPrev, currency, { decimals: m.costPrev < 1 ? 4 : 2 })} → ${formatMoney(m.costCurr, currency, { decimals: m.costCurr < 1 ? 4 : 2 })}` },
             { key: "p", header: "Cambio", align: "right", cell: (m) => <Amount value={-m.changePct}>{formatPercent(m.changePct, 1, { signed: true })}</Amount> },
-            { key: "i", header: "Efecto en el margen del mes", align: "right", cell: (m) => <Amount value={m.impact}>{formatMoney(m.impact, currency, { signed: true })}</Amount> },
+            { key: "i", header: "Efecto completo a precio de reposición", align: "right", cell: (m) => <Amount value={m.impact}>{formatMoney(m.impact, currency, { signed: true })}</Amount> },
           ]} />
         </Section>
       )}

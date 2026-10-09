@@ -105,7 +105,7 @@ export default function ExpensesPage() {
           columns={[
             { key: "date", header: "Fecha", sortValue: (e: any) => e.expense_date, cell: (e: any) => formatDate(e.expense_date) },
             { key: "cat", header: "Categoría", cell: (e: any) => <span className="flex items-center gap-1.5">{e.category}{e.is_recurring && <Repeat className="h-3 w-3 text-brand" aria-label="Recurrente" />}</span> },
-            { key: "desc", header: "Detalle", cell: (e: any) => <span className="text-muted-foreground">{[e.description, e.vendor].filter(Boolean).join(" · ")}</span> },
+            { key: "desc", header: "Detalle", className: "whitespace-normal min-w-48", cell: (e: any) => <span className="text-muted-foreground">{[e.description, e.vendor].filter(Boolean).join(" · ")}</span> },
             { key: "amount", header: "Monto", align: "right", sortValue: (e: any) => Number(e.amount), cell: (e: any) => formatMoney(Number(e.amount), currency) },
             { key: "actions", header: "", align: "right", cell: (e: any) => canEdit && (
               <div className="flex justify-end gap-1">

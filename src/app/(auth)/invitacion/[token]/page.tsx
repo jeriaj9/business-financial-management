@@ -119,7 +119,7 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
           <Button size="lg" className="h-10 bg-brand text-brand-foreground hover:bg-brand/90" disabled={busy} onClick={() => { setBusy(true); setError(null); accept().catch((err) => setError(friendlyError(err))).finally(() => setBusy(false)); }}>
             {busy && <Loader2 className="h-4 w-4 animate-spin" />} Aceptar invitación
           </Button>
-          <button className="text-xs text-muted-foreground underline" onClick={signOut}>Usar otra cuenta</button>
+          <button className="text-xs text-muted-foreground underline" onClick={() => signOut(`/invitacion/${token}`)}>Usar otra cuenta</button>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="mt-6 grid gap-4">
