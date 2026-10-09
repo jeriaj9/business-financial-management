@@ -14,10 +14,17 @@ describe("computeProductCost", () => {
     expect(c.variable).toBeCloseTo(130);
   });
 
-  it("includes labor in variable cost only when labor is paid per unit", () => {
-    const c = computeProductCost(candle, costs, { ...settings, laborIsVariable: true });
+  it("includes hourly labor in the cost of goods sold", () => {
+    const c = computeProductCost(candle, costs, { ...settings, laborMode: "hourly" });
     expect(c.variable).toBeCloseTo(150);
     expect(c.full).toBeCloseTo(165);
+  });
+
+  it("uses the product's piece rate when labor is paid per piece", () => {
+    const c = computeProductCost({ ...candle, laborCostPerPiece: 12 }, costs, { ...settings, laborMode: "piece" });
+    expect(c.labor).toBeCloseTo(12);
+    expect(c.variable).toBeCloseTo(142);
+    expect(c.full).toBeCloseTo((130 + 12) * 1.1);
   });
 
   it("returns zero costs for an invalid batch size", () => {

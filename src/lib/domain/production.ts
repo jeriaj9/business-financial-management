@@ -22,8 +22,9 @@ export interface CompletedOrder {
   producedQuantity: number;
   laborHours: number;
   standardLaborHours: number;
-  laborRate: number;
-  laborIsVariable: boolean;
+  laborCost: number; // what labor cost for this order (hours x rate, or units x piece rate)
+  standardLaborCost: number; // what it should have cost per the product's standard
+  laborInUnitCost: boolean; // labor paid per hour or per piece is part of the unit cost
   standardUnitCost: number; // product variable cost when completed
   actualUnitCost: number;
   consumptions: ConsumptionRecord[];
@@ -52,7 +53,8 @@ export interface OrderVariance {
   totalVariance: number; // actual - standard, positive = cost overrun
   materialUsageVariance: number;
   materialPriceVariance: number;
-  laborVariance: number; // (hours - standard hours) x rate, informational when labor is a fixed cost
+  laborVariance: number; // actual - standard labor cost; informational when labor is a fixed salary
+  laborInUnitCost: boolean;
   standardUnitCost: number;
   actualUnitCost: number;
   materials: MaterialVariance[];
@@ -85,9 +87,9 @@ export function analyzeOrder(order: CompletedOrder): OrderVariance {
 
   const standardMaterials = order.consumptions.reduce((s, c) => s + c.standardQuantity * c.standardPrice, 0);
   const actualMaterials = order.consumptions.reduce((s, c) => s + c.actualQuantity * c.unitCost, 0);
-  const laborVariance = (order.laborHours - order.standardLaborHours) * order.laborRate;
-  const standardLabor = order.laborIsVariable ? order.standardLaborHours * order.laborRate : 0;
-  const actualLabor = order.laborIsVariable ? order.laborHours * order.laborRate : 0;
+  const laborVariance = order.laborCost - order.standardLaborCost;
+  const standardLabor = order.laborInUnitCost ? order.standardLaborCost : 0;
+  const actualLabor = order.laborInUnitCost ? order.laborCost : 0;
 
   const standardCost = standardMaterials + standardLabor;
   const actualCost = actualMaterials + actualLabor;
@@ -105,6 +107,7 @@ export function analyzeOrder(order: CompletedOrder): OrderVariance {
     materialUsageVariance: materials.reduce((s, m) => s + m.usageVarianceCost, 0),
     materialPriceVariance: materials.reduce((s, m) => s + m.priceVarianceCost, 0),
     laborVariance,
+    laborInUnitCost: order.laborInUnitCost,
     standardUnitCost: order.standardUnitCost,
     actualUnitCost: order.actualUnitCost,
     materials: materials.sort((a, b) => Math.abs(b.usageVarianceCost) - Math.abs(a.usageVarianceCost)),

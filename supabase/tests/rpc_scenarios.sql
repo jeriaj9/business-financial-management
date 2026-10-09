@@ -261,6 +261,24 @@ SELECT remove_distributor_portal_user(:'link_id');
 SELECT pg_temp.login('55555555-5555-5555-5555-555555555555', 'dist.a@test.local');
 SELECT pg_temp.expect_error(format('SELECT portal_statement(%L)', :'dist_id'), '%No tienes acceso%');
 
+-- ---------------------------------------------------------------- labor paid per piece
+SELECT pg_temp.login('11111111-1111-1111-1111-111111111111', 'admin.a@test.local');
+UPDATE settings SET labor_payment_mode = 'piece';
+SELECT save_product(:'candle_id',
+    jsonb_build_object('name', 'Vela lavanda', 'sku', 'VEL-001', 'category', 'Velas', 'batch_size', 10,
+                       'production_time_hours', 2, 'retail_price', 400, 'labor_cost_per_piece', 12),
+    NULL);
+-- materials at replacement cost (2000 g x 0.7 + 100 ml x 3) / 10 = 170, plus 12 per piece
+SELECT pg_temp.check((SELECT round(calculated_labor_cost, 2) = 12 AND round(variable_unit_cost, 2) = 182 FROM products WHERE id = :'candle_id'),
+                     'piece rate drives labor cost and cost of goods sold');
+SELECT create_production_order(:'candle_id', 10, '2026-09-21') AS piece_order \gset
+SELECT complete_production_order(:'piece_order', 10, NULL, '[]'::JSONB, '2026-09-21');
+-- actual: (2000 g x 0.6 avg + 100 ml x 3) + 10 x 12 = 1620 -> 162 per unit
+SELECT pg_temp.check((SELECT labor_cost = 120 AND standard_labor_cost = 120 AND labor_in_unit_cost AND round(actual_unit_cost, 2) = 162
+                      FROM production_orders WHERE id = :'piece_order'), 'piece-paid production includes labor in its unit cost');
+UPDATE settings SET labor_payment_mode = 'salary';
+SELECT pg_temp.check((SELECT round(variable_unit_cost, 2) = 170 FROM products WHERE id = :'candle_id'), 'back to salary removes labor from cost of goods sold');
+
 -- ---------------------------------------------------------------- team management
 SELECT pg_temp.login('11111111-1111-1111-1111-111111111111', 'admin.a@test.local');
 SELECT pg_temp.check((SELECT count(*) FROM list_team_members()) = 3, 'admin lists 3 team members with emails');

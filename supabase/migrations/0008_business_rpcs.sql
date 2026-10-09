@@ -1247,8 +1247,17 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Retire the legacy sales RPCs
 -- ---------------------------------------------------------------------------
-DROP FUNCTION IF EXISTS process_sale(JSONB, JSONB);
-DROP FUNCTION IF EXISTS reverse_sale(TEXT, UUID, JSONB);
+DO $$
+DECLARE
+    f REGPROCEDURE;
+BEGIN
+    FOR f IN
+        SELECT p.oid::REGPROCEDURE FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname IN ('process_sale', 'reverse_sale')
+    LOOP
+        EXECUTE format('DROP FUNCTION %s', f);
+    END LOOP;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- Execution grants: internal helpers are not callable from clients; the public API is

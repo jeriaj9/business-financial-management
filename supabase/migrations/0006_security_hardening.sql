@@ -13,9 +13,19 @@ DROP POLICY IF EXISTS "Users can insert their own profile" ON user_profiles;
 -- 2. Companies can no longer be created directly from the client
 DROP POLICY IF EXISTS "Anyone can create a company" ON companies;
 
--- 3. Lock down the legacy sales RPCs until they are replaced (dropped in 0008)
-REVOKE EXECUTE ON FUNCTION process_sale(JSONB, JSONB) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION reverse_sale(TEXT, UUID, JSONB) FROM PUBLIC, anon, authenticated;
+-- 3. Lock down the legacy sales RPCs until they are replaced (dropped in 0008).
+--    Any overload is covered, in case a manual change left a different signature.
+DO $$
+DECLARE
+    f REGPROCEDURE;
+BEGIN
+    FOR f IN
+        SELECT p.oid::REGPROCEDURE FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname IN ('process_sale', 'reverse_sale')
+    LOOP
+        EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', f);
+    END LOOP;
+END $$;
 
 -- 4. Valid roles only
 UPDATE user_profiles SET role = 'view' WHERE role IS NULL OR role NOT IN ('admin', 'edit', 'view');

@@ -133,28 +133,28 @@ BEGIN
     VALUES (v_company, 'Etiqueta impresa', 'Empaque', 'unidad', 3.5, 0, 200, s_envases, 'Envases Industriales') RETURNING id INTO m_etiqueta;
 
     p_vela_lav := save_product(NULL,
-        jsonb_build_object('name', 'Vela de soya lavanda 8 oz', 'sku', 'VEL-LAV-08', 'category', 'Velas', 'batch_size', 24, 'production_time_hours', 3, 'retail_price', 495,
+        jsonb_build_object('name', 'Vela de soya lavanda 8 oz', 'sku', 'VEL-LAV-08', 'category', 'Velas', 'batch_size', 24, 'production_time_hours', 3, 'retail_price', 495, 'labor_cost_per_piece', 18,
                            'description', 'Vela de cera de soya en vaso de vidrio, 45 horas de duración.'),
         jsonb_build_array(
             jsonb_build_object('material_id', m_cera, 'quantity', 4800), jsonb_build_object('material_id', m_lav, 'quantity', 384),
             jsonb_build_object('material_id', m_mecha, 'quantity', 24), jsonb_build_object('material_id', m_vaso, 'quantity', 24),
             jsonb_build_object('material_id', m_etiqueta, 'quantity', 24)));
     p_vela_vai := save_product(NULL,
-        jsonb_build_object('name', 'Vela de soya vainilla 8 oz', 'sku', 'VEL-VAI-08', 'category', 'Velas', 'batch_size', 24, 'production_time_hours', 3, 'retail_price', 495,
+        jsonb_build_object('name', 'Vela de soya vainilla 8 oz', 'sku', 'VEL-VAI-08', 'category', 'Velas', 'batch_size', 24, 'production_time_hours', 3, 'retail_price', 495, 'labor_cost_per_piece', 18,
                            'description', 'Vela de cera de soya con vainilla, en vaso de vidrio.'),
         jsonb_build_array(
             jsonb_build_object('material_id', m_cera, 'quantity', 4800), jsonb_build_object('material_id', m_vai, 'quantity', 384),
             jsonb_build_object('material_id', m_mecha, 'quantity', 24), jsonb_build_object('material_id', m_vaso, 'quantity', 24),
             jsonb_build_object('material_id', m_etiqueta, 'quantity', 24)));
     p_difusor := save_product(NULL,
-        jsonb_build_object('name', 'Difusor de varillas lavanda 100 ml', 'sku', 'DIF-LAV-100', 'category', 'Difusores', 'batch_size', 12, 'production_time_hours', 1.5, 'retail_price', 650,
+        jsonb_build_object('name', 'Difusor de varillas lavanda 100 ml', 'sku', 'DIF-LAV-100', 'category', 'Difusores', 'batch_size', 12, 'production_time_hours', 1.5, 'retail_price', 650, 'labor_cost_per_piece', 19,
                            'description', 'Difusor con 8 varillas de ratán, dura 6 a 8 semanas.'),
         jsonb_build_array(
             jsonb_build_object('material_id', m_frasco, 'quantity', 12), jsonb_build_object('material_id', m_base, 'quantity', 1020),
             jsonb_build_object('material_id', m_lav, 'quantity', 180), jsonb_build_object('material_id', m_varillas, 'quantity', 12),
             jsonb_build_object('material_id', m_etiqueta, 'quantity', 12)));
     p_sachet := save_product(NULL,
-        jsonb_build_object('name', 'Sachet aromático lavanda', 'sku', 'SAC-LAV', 'category', 'Sachets', 'batch_size', 50, 'production_time_hours', 2, 'retail_price', 120,
+        jsonb_build_object('name', 'Sachet aromático lavanda', 'sku', 'SAC-LAV', 'category', 'Sachets', 'batch_size', 50, 'production_time_hours', 2, 'retail_price', 120, 'labor_cost_per_piece', 6,
                            'description', 'Bolsita de organza para clósets y gavetas.'),
         jsonb_build_array(
             jsonb_build_object('material_id', m_organza, 'quantity', 50), jsonb_build_object('material_id', m_lav, 'quantity', 250),

@@ -1,10 +1,11 @@
 // Product costing and pricing. Mirrors trg_products_compute_costs and resolve_distributor_price
 // in the database so previews in the browser match what the server stores.
-import type { CostSettings, RecipeLine } from "./types";
+import { laborInCostOfGoods, type CostSettings, type RecipeLine } from "./types";
 
 export interface ProductCostInput {
   batchSize: number;
   productionTimeHours: number;
+  laborCostPerPiece?: number;
   recipe: RecipeLine[];
 }
 
@@ -13,7 +14,7 @@ export interface ProductCost {
   labor: number; // per unit
   overhead: number; // per unit (indirect reserve, used for pricing only)
   full: number; // material + labor + overhead: the cost a price must recover
-  variable: number; // material (+ labor when paid per unit): the cost of goods sold
+  variable: number; // material (+ labor when paid per hour or per piece): the cost of goods sold
 }
 
 export type MaterialCostLookup = (materialId: string) => number;
@@ -21,16 +22,16 @@ export type MaterialCostLookup = (materialId: string) => number;
 export function computeProductCost(
   input: ProductCostInput,
   materialCost: MaterialCostLookup,
-  settings: Pick<CostSettings, "laborCostPerHour" | "indirectCostReserve" | "laborIsVariable">
+  settings: Pick<CostSettings, "laborCostPerHour" | "indirectCostReserve" | "laborMode">
 ): ProductCost {
   const batch = input.batchSize;
-  if (!(batch > 0)) {
-    return { material: 0, labor: 0, overhead: 0, full: 0, variable: 0 };
-  }
-
-  const batchMaterial = input.recipe.reduce((sum, line) => sum + line.quantity * materialCost(line.materialId), 0);
-  const material = batchMaterial / batch;
-  const labor = ((input.productionTimeHours || 0) * settings.laborCostPerHour) / batch;
+  const material = batch > 0 ? input.recipe.reduce((sum, line) => sum + line.quantity * materialCost(line.materialId), 0) / batch : 0;
+  const labor =
+    settings.laborMode === "piece"
+      ? input.laborCostPerPiece ?? 0
+      : batch > 0
+        ? ((input.productionTimeHours || 0) * settings.laborCostPerHour) / batch
+        : 0;
   const overhead = (material + labor) * settings.indirectCostReserve;
 
   return {
@@ -38,7 +39,7 @@ export function computeProductCost(
     labor,
     overhead,
     full: material + labor + overhead,
-    variable: material + (settings.laborIsVariable ? labor : 0),
+    variable: material + (laborInCostOfGoods(settings.laborMode) ? labor : 0),
   };
 }
 

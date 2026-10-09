@@ -42,7 +42,7 @@ export function useDataset(options: DatasetOptions) {
     ? {
         laborCostPerHour: company.settings.laborCostPerHour,
         indirectCostReserve: company.settings.indirectCostReserve,
-        laborIsVariable: company.settings.laborIsVariable,
+        laborMode: company.settings.laborMode,
         distributorMargin: company.settings.distributorMargin,
       }
     : null;

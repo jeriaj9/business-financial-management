@@ -107,6 +107,15 @@ export default function ProductionPage() {
     }
   };
 
+  const laborHint = (order: any) => {
+    const product = productById.get(order.product_id);
+    const qty = parseInput(produced) ?? 0;
+    if (!settings || !product) return undefined;
+    if (settings.laborMode === "piece") return `Pago por pieza: ${formatMoney(qty * product.laborCostPerPiece, currency)} (${formatMoney(product.laborCostPerPiece, currency)} × ${formatNumber(qty)})`;
+    const cost = (parseInput(hours) ?? 0) * settings.laborCostPerHour;
+    return settings.laborMode === "hourly" ? `Costo: ${formatMoney(cost, currency)}` : `Referencia: ${formatMoney(cost, currency)} (salario fijo)`;
+  };
+
   const cancelOrder = async (order: any) => {
     if (!window.confirm(`¿Cancelar la orden ${order.number}?`)) return;
     try {
@@ -130,8 +139,9 @@ export default function ProductionPage() {
         producedQuantity: Number(o.produced_quantity),
         laborHours: Number(o.labor_hours ?? 0),
         standardLaborHours: Number(o.standard_labor_hours ?? 0),
-        laborRate: Number(o.labor_hours) > 0 ? Number(o.labor_cost) / Number(o.labor_hours) : settings?.laborCostPerHour ?? 0,
-        laborIsVariable: settings?.laborIsVariable ?? false,
+        laborCost: Number(o.labor_cost ?? 0),
+        standardLaborCost: Number(o.standard_labor_cost ?? 0),
+        laborInUnitCost: Boolean(o.labor_in_unit_cost),
         standardUnitCost: Number(o.standard_unit_cost ?? 0),
         actualUnitCost: Number(o.actual_unit_cost ?? 0),
         consumptions: (o.production_consumptions ?? []).map((c: any) => ({
@@ -145,7 +155,7 @@ export default function ProductionPage() {
         })),
       }));
     return summarizeProduction(completed);
-  }, [orders.data, period, settings]);
+  }, [orders.data, period]);
 
   if (orders.isLoading || products.isLoading || materials.isLoading) return <LoadingState />;
   if (orders.error) return <ErrorState message={friendlyError(orders.error)} onRetry={() => orders.mutate()} />;
@@ -254,7 +264,7 @@ export default function ProductionPage() {
                           { key: "p", header: "Diferencia", align: "right", cell: (m) => <Amount value={m.usageVariancePct} invert>{formatPercent(m.usageVariancePct, 1, { signed: true })}</Amount> },
                           { key: "c", header: "Impacto", align: "right", cell: (m) => <Amount value={m.usageVarianceCost} invert>{formatMoney(m.usageVarianceCost, currency, { signed: true })}</Amount> },
                         ]} />
-                        <p className="mt-2 text-xs text-muted-foreground">Mano de obra: {formatMoney(o.laborVariance, currency, { signed: true })} de diferencia por tiempo{settings?.laborIsVariable ? "" : " (informativo: tu mano de obra es un gasto fijo)"}.</p>
+                        <p className="mt-2 text-xs text-muted-foreground">Mano de obra: {formatMoney(o.laborVariance, currency, { signed: true })} de diferencia frente al estándar{o.laborInUnitCost ? "" : " (informativo: se pagó con salario fijo, no forma parte del costo unitario)"}.</p>
                       </div>
                     </details>
                   ))}
@@ -300,7 +310,13 @@ export default function ProductionPage() {
                 const qty = parseInput(e.target.value);
                 if (qty && qty > 0) setActuals(Object.fromEntries(requirement(completing.product_id, qty).map((r) => [r.materialId, String(Math.round(r.quantity * 1000) / 1000)])));
               }} description={`Planificado: ${formatNumber(Number(completing.planned_quantity))}`} />
-              <FormField label="Horas de trabajo" inputMode="decimal" value={hours} onChange={(e) => setHours(e.target.value)} />
+              <FormField
+                label={settings?.laborMode === "piece" ? "Horas (referencia)" : "Horas de trabajo"}
+                inputMode="decimal"
+                value={hours}
+                onChange={(e) => setHours(e.target.value)}
+                description={laborHint(completing)}
+              />
               <FormField label="Fecha" type="date" value={completedDate} onChange={(e) => setCompletedDate(e.target.value)} />
             </div>
             <div className="overflow-x-auto rounded-lg border">

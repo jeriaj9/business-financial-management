@@ -4,11 +4,24 @@ import type { ISODate } from "./dates";
 export type ChannelKind = "direct" | "distributor" | "online" | "wholesale" | "other";
 export type PriceBasis = "retail" | "distributor";
 
+/**
+ * How production labor is paid:
+ * - salary: fixed payroll recorded in Expenses; labor feeds prices, not the cost of goods sold
+ * - hourly: paid per hour worked; hours x hourly rate is part of the cost of goods sold
+ * - piece: paid per unit produced at each product's piece rate; part of the cost of goods sold
+ */
+export type LaborMode = "salary" | "hourly" | "piece";
+
 export interface CostSettings {
   laborCostPerHour: number;
   indirectCostReserve: number; // fraction, e.g. 0.10
-  laborIsVariable: boolean;
+  laborMode: LaborMode;
   distributorMargin: number; // default distributor discount off retail, fraction
+}
+
+/** Whether labor is part of the cost of goods sold under this payment mode. */
+export function laborInCostOfGoods(mode: LaborMode): boolean {
+  return mode === "hourly" || mode === "piece";
 }
 
 export interface Material {
@@ -35,6 +48,7 @@ export interface Product {
   category: string | null;
   batchSize: number;
   productionTimeHours: number; // per batch
+  laborCostPerPiece: number; // used when labor is paid per piece
   retailPrice: number;
   distributorPrice: number | null; // null = automatic
   currentStock: number;

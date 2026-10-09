@@ -3,7 +3,7 @@ import type { Channel, CostSettings, Material, Product, SaleLine } from "../type
 export const settings: CostSettings = {
   laborCostPerHour: 100,
   indirectCostReserve: 0.1,
-  laborIsVariable: false,
+  laborMode: "salary",
   distributorMargin: 0.2,
 };
 
@@ -39,6 +39,7 @@ export const candle: Product = {
   category: "Velas",
   batchSize: 10,
   productionTimeHours: 2,
+  laborCostPerPiece: 20,
   retailPrice: 400,
   distributorPrice: null,
   currentStock: 20,
@@ -60,6 +61,7 @@ export const sachet: Product = {
   category: "Sachets",
   batchSize: 20,
   productionTimeHours: 1,
+  laborCostPerPiece: 5,
   retailPrice: 40,
   distributorPrice: 30,
   currentStock: 100,

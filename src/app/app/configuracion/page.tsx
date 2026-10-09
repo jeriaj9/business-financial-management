@@ -5,7 +5,7 @@ import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import { formatDate, formatMoney, formatPercent, parseInput } from "@/lib/format";
-import { invalidate, rpc, useChannels, useCompany, useInvitations, useTeam } from "@/lib/data/hooks";
+import { invalidate, rpc, useChannels, useCompany, useInvitations, useProducts, useTeam } from "@/lib/data/hooks";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { Channel } from "@/lib/domain/types";
 import type { SettingsRecord } from "@/lib/data/mappers";
@@ -20,6 +20,7 @@ import { SwitchField } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toaster";
 import { es } from "@/i18n/es";
+import { cn } from "@/lib/utils";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const pct = (v: number) => String(Math.round(v * 10000) / 100);
@@ -35,12 +36,14 @@ export default function SettingsPage() {
 function SettingsEditor({ settings, tab, onTabChange }: { settings: SettingsRecord; tab: string; onTabChange: (tab: string) => void }) {
   const { companyId, companyName, isAdmin, currency } = useCompany();
   const { refresh } = useAuth();
+  const products = useProducts(companyId);
+  const productsWithoutRate = (products.data ?? []).filter((p) => p.isActive && p.laborCostPerPiece <= 0);
   const toast = useToast();
 
   const [company, setCompany] = useState({ name: companyName, currency: settings.currency });
   const [costing, setCosting] = useState({
     labor: String(settings.laborCostPerHour),
-    laborVariable: settings.laborIsVariable,
+    laborMode: settings.laborMode,
     reserve: pct(settings.indirectCostReserve),
     distributor: pct(settings.distributorMargin),
     negative: settings.allowNegativeStock,
@@ -95,16 +98,48 @@ function SettingsEditor({ settings, tab, onTabChange }: { settings: SettingsReco
         <TabsContent value="costeo" className="mt-4">
           <Section title="Cómo se calcula el costo de tus productos">
             <div className="grid gap-5 md:grid-cols-2">
-              <FormField label={`Costo de mano de obra por hora (${currency})`} inputMode="decimal" value={costing.labor} disabled={readOnly} onChange={(e) => setCosting({ ...costing, labor: e.target.value })} />
-              <FormField label="Reserva para gastos indirectos (%)" inputMode="decimal" value={costing.reserve} disabled={readOnly} onChange={(e) => setCosting({ ...costing, reserve: e.target.value })} description="Se suma al costo para fijar precios que cubran alquiler, luz, etc." />
-              <SwitchField
-                className="md:col-span-2"
-                checked={costing.laborVariable}
+              <fieldset className="grid gap-2 md:col-span-2" disabled={readOnly}>
+                <legend className="mb-2 text-sm font-medium">¿Cómo pagas la mano de obra de producción?</legend>
+                <div className="grid gap-2 md:grid-cols-3">
+                  {(["salary", "hourly", "piece"] as const).map((mode) => (
+                    <label
+                      key={mode}
+                      className={cn(
+                        "flex cursor-pointer flex-col gap-1 rounded-lg border p-3 text-sm transition-colors",
+                        costing.laborMode === mode ? "border-brand bg-brand/10" : "hover:bg-muted/50",
+                        readOnly && "cursor-not-allowed opacity-70"
+                      )}
+                    >
+                      <span className="flex items-center gap-2 font-medium">
+                        <input
+                          type="radio"
+                          name="labor-mode"
+                          className="accent-[var(--brand)]"
+                          checked={costing.laborMode === mode}
+                          onChange={() => setCosting({ ...costing, laborMode: mode })}
+                        />
+                        {es.laborModes[mode].title}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{es.laborModes[mode].description}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              {costing.laborMode === "piece" && productsWithoutRate.length > 0 && (
+                <Callout tone="warning" className="md:col-span-2" title={`${productsWithoutRate.length} producto${productsWithoutRate.length === 1 ? "" : "s"} sin pago por pieza`}>
+                  {productsWithoutRate.slice(0, 5).map((p) => p.name).join(", ")}
+                  {productsWithoutRate.length > 5 ? "…" : ""}. Define la tarifa en «Productos y recetas»; mientras tanto su costo no incluye mano de obra.
+                </Callout>
+              )}
+              <FormField
+                label={`Tarifa de mano de obra por hora (${currency})`}
+                inputMode="decimal"
+                value={costing.labor}
                 disabled={readOnly}
-                onCheckedChange={(v) => setCosting({ ...costing, laborVariable: v })}
-                label="La mano de obra se paga por unidad producida"
-                description="Actívalo si pagas a destajo y NO registras esos pagos en Gastos. Si pagas salarios fijos (registrados en Gastos), déjalo apagado para no contar la mano de obra dos veces."
+                onChange={(e) => setCosting({ ...costing, labor: e.target.value })}
+                description={costing.laborMode === "piece" ? "Con pago por pieza no se usa para el costo: la tarifa se define en cada producto." : "Se multiplica por las horas por lote de cada producto."}
               />
+              <FormField label="Reserva para gastos indirectos (%)" inputMode="decimal" value={costing.reserve} disabled={readOnly} onChange={(e) => setCosting({ ...costing, reserve: e.target.value })} description="Se suma al costo para fijar precios que cubran alquiler, luz, etc." />
               <FormField label="Descuento general para distribuidores (%)" inputMode="decimal" value={costing.distributor} disabled={readOnly} onChange={(e) => setCosting({ ...costing, distributor: e.target.value })} description="Precio distribuidor = precio de lista menos este %, salvo excepciones." />
               <SwitchField
                 checked={costing.negative}
@@ -121,7 +156,7 @@ function SettingsEditor({ settings, tab, onTabChange }: { settings: SettingsReco
                   onClick={() =>
                     updateSettings("costing", {
                       labor_cost_per_hour: parseInput(costing.labor) ?? 0,
-                      labor_is_variable: costing.laborVariable,
+                      labor_payment_mode: costing.laborMode,
                       indirect_cost_reserve: (parseInput(costing.reserve) ?? 0) / 100,
                       distributor_margin: (parseInput(costing.distributor) ?? 0) / 100,
                       allow_negative_stock: costing.negative,

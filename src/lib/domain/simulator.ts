@@ -177,7 +177,11 @@ export function runScenario(baseline: SimulatorBaseline, scenario: Scenario): Si
       const product = productById.get(productId);
       if (!product) return 0;
       const cost = computeProductCost(
-        { ...product, batchSize: scenario.batchSize[productId] ?? product.batchSize },
+        {
+          ...product,
+          batchSize: scenario.batchSize[productId] ?? product.batchSize,
+          laborCostPerPiece: product.laborCostPerPiece * (1 + scenario.laborRatePct),
+        },
         (id) => materialCost.get(id) ?? 0,
         settings
       );

@@ -120,6 +120,27 @@ export const es = {
     WASTE: "Merma",
   } as Record<string, string>,
 
+  laborModes: {
+    salary: {
+      title: "Salario fijo",
+      short: "fija",
+      description:
+        "Pagas sueldos y los registras en Gastos. La mano de obra (horas × tarifa) se usa para fijar precios, pero no se suma al costo de lo vendido para no contarla dos veces.",
+    },
+    hourly: {
+      title: "Por hora trabajada",
+      short: "por hora",
+      description:
+        "Pagas las horas dedicadas a producir. Horas × tarifa forma parte del costo de cada producto; las horas reales salen de cada orden de producción. No registres esos pagos en Gastos.",
+    },
+    piece: {
+      title: "Por pieza producida",
+      short: "por pieza",
+      description:
+        "Pagas un monto por cada unidad terminada (a destajo). Defines la tarifa en cada producto y forma parte de su costo. Si además pagas un salario base, regístralo en Gastos.",
+    },
+  } as Record<"salary" | "hourly" | "piece", { title: string; short: string; description: string }>,
+
   planStatus: { ok: "En plazo", soon: "Pronto", urgent: "Urgente" } as Record<string, string>,
   purchaseStatus: { ok: "En plazo", order_soon: "Pedir esta semana", late: "Atrasado" } as Record<string, string>,
 };

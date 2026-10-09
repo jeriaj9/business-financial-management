@@ -17,6 +17,7 @@ import { SwitchField } from "@/components/ui/switch";
 import { TextareaField } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { es } from "@/i18n/es";
 
 interface RecipeRow {
   key: string;
@@ -32,6 +33,7 @@ interface Draft {
   description: string;
   batchSize: string;
   hours: string;
+  laborPerPiece: string;
   retailPrice: string;
   distributorAuto: boolean;
   distributorPrice: string;
@@ -48,6 +50,7 @@ const newDraft = (): Draft => ({
   description: "",
   batchSize: "1",
   hours: "0",
+  laborPerPiece: "0",
   retailPrice: "",
   distributorAuto: true,
   distributorPrice: "",
@@ -65,6 +68,7 @@ function toDraft(p: ProductRecord): Draft {
     description: p.description ?? "",
     batchSize: String(p.batchSize),
     hours: String(p.productionTimeHours),
+    laborPerPiece: String(p.laborCostPerPiece),
     retailPrice: p.retailPrice ? String(p.retailPrice) : "",
     distributorAuto: p.distributorPrice === null,
     distributorPrice: p.distributorPrice === null ? "" : String(p.distributorPrice),
@@ -86,6 +90,9 @@ export default function ProductsPage() {
   const [targetMargin, setTargetMargin] = useState("55");
   const [saving, setSaving] = useState(false);
 
+  const laborMode = settings?.laborMode ?? "salary";
+  const piece = laborMode === "piece";
+
   // Until the user picks a product, show the first one
   const defaultDraft = useMemo(() => (products.data && products.data.length > 0 ? toDraft(products.data[0]) : null), [products.data]);
   const draft = editing ?? defaultDraft;
@@ -95,8 +102,8 @@ export default function ProductsPage() {
   const costSettings = useMemo(
     () =>
       settings
-        ? { laborCostPerHour: settings.laborCostPerHour, indirectCostReserve: settings.indirectCostReserve, laborIsVariable: settings.laborIsVariable }
-        : { laborCostPerHour: 0, indirectCostReserve: 0, laborIsVariable: false },
+        ? { laborCostPerHour: settings.laborCostPerHour, indirectCostReserve: settings.indirectCostReserve, laborMode: settings.laborMode }
+        : { laborCostPerHour: 0, indirectCostReserve: 0, laborMode: "salary" as const },
     [settings]
   );
 
@@ -106,7 +113,12 @@ export default function ProductsPage() {
       .map((r) => ({ materialId: r.materialId, quantity: parseInput(r.quantity) ?? 0 }))
       .filter((r) => r.materialId && r.quantity > 0);
     const cost = computeProductCost(
-      { batchSize: parseInput(draft.batchSize) ?? 0, productionTimeHours: parseInput(draft.hours) ?? 0, recipe },
+      {
+        batchSize: parseInput(draft.batchSize) ?? 0,
+        productionTimeHours: parseInput(draft.hours) ?? 0,
+        laborCostPerPiece: parseInput(draft.laborPerPiece) ?? 0,
+        recipe,
+      },
       (id) => materialById.get(id)?.costPerUnit ?? 0,
       costSettings
     );
@@ -136,6 +148,7 @@ export default function ProductsPage() {
           description: draft.description,
           batch_size: parseInput(draft.batchSize),
           production_time_hours: parseInput(draft.hours) ?? 0,
+          labor_cost_per_piece: parseInput(draft.laborPerPiece) ?? 0,
           retail_price: preview.retail,
           distributor_price: draft.distributorAuto ? null : parseInput(draft.distributorPrice),
           is_active: draft.isActive,
@@ -193,7 +206,11 @@ export default function ProductsPage() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className={cn("truncate text-sm font-medium", !p.isActive && "text-muted-foreground line-through")}>{p.name}</span>
-                      {p.retailPrice > 0 && <span className={cn("text-xs tabular-nums", margin < 0.3 ? "text-red-400" : "text-muted-foreground")}>{formatPercent(margin, 0)}</span>}
+                      {piece && p.laborCostPerPiece <= 0 ? (
+                        <Badge tone="warning">Sin tarifa</Badge>
+                      ) : (
+                        p.retailPrice > 0 && <span className={cn("text-xs tabular-nums", margin < 0.3 ? "text-red-400" : "text-muted-foreground")}>{formatPercent(margin, 0)}</span>
+                      )}
                     </div>
                     <p className="truncate text-xs text-muted-foreground">{[p.sku, p.category].filter(Boolean).join(" · ") || "Sin SKU"}</p>
                   </button>
@@ -222,9 +239,26 @@ export default function ProductsPage() {
 
               <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
                 <Section title="Receta por lote" description="Cantidad de cada materia prima para producir un lote completo.">
-                  <div className="mb-4 grid grid-cols-2 gap-4 sm:max-w-md">
+                  <div className={cn("mb-4 grid gap-4", piece ? "grid-cols-1 sm:grid-cols-3 sm:max-w-2xl" : "grid-cols-2 sm:max-w-md")}>
                     <FormField label="Unidades por lote" inputMode="decimal" value={draft.batchSize} onChange={(e) => update({ batchSize: e.target.value })} disabled={!canEdit} />
-                    <FormField label="Horas de trabajo por lote" inputMode="decimal" value={draft.hours} onChange={(e) => update({ hours: e.target.value })} disabled={!canEdit} />
+                    <FormField
+                      label={piece ? "Horas por lote (referencia)" : "Horas de trabajo por lote"}
+                      inputMode="decimal"
+                      value={draft.hours}
+                      onChange={(e) => update({ hours: e.target.value })}
+                      disabled={!canEdit}
+                    />
+                    {piece && (
+                      <FormField
+                        error={(parseInput(draft.laborPerPiece) ?? 0) <= 0 ? "Sin tarifa: el costo no incluye mano de obra." : undefined}
+                        label={`Pago por unidad producida (${currency})`}
+                        inputMode="decimal"
+                        value={draft.laborPerPiece}
+                        onChange={(e) => update({ laborPerPiece: e.target.value })}
+                        disabled={!canEdit}
+                        description="Lo que pagas a destajo por cada unidad terminada."
+                      />
+                    )}
                   </div>
                   <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full text-sm">
@@ -289,16 +323,19 @@ export default function ProductsPage() {
                 <Section title="Costo por unidad">
                   <dl className="grid gap-2 text-sm">
                     <CostRow label="Materiales" value={formatMoney(preview.cost.material, currency)} />
-                    <CostRow label={`Mano de obra${settings?.laborIsVariable ? "" : " (fija)"}`} value={formatMoney(preview.cost.labor, currency)} />
+                    <CostRow label={`Mano de obra (${es.laborModes[laborMode].short})`} value={formatMoney(preview.cost.labor, currency)} />
                     <CostRow label={`Reserva de gastos indirectos (${formatPercent(settings?.indirectCostReserve ?? 0, 0)})`} value={formatMoney(preview.cost.overhead, currency)} />
                     <div className="my-1 border-t" />
                     <CostRow label="Costo completo (para fijar precio)" value={formatMoney(preview.cost.full, currency)} strong />
                     <CostRow label="Costo de lo vendido (contable)" value={formatMoney(preview.cost.variable, currency)} muted />
                   </dl>
                   <p className="mt-3 text-xs text-muted-foreground">
-                    {settings?.laborIsVariable
-                      ? "La mano de obra se paga por unidad, por eso forma parte del costo de lo vendido."
-                      : "La mano de obra está configurada como gasto fijo: se usa para fijar precios, pero el salario se registra en Gastos para no contarlo dos veces."}
+                    {laborMode === "salary"
+                      ? "La mano de obra está configurada como salario fijo: se usa para fijar precios, pero el salario se registra en Gastos para no contarlo dos veces."
+                      : laborMode === "hourly"
+                        ? "La mano de obra se paga por hora, por eso forma parte del costo de lo vendido."
+                        : "La mano de obra se paga por pieza producida, por eso forma parte del costo de lo vendido."}{" "}
+                    Puedes cambiar el modo en Configuración.
                   </p>
                 </Section>
               </div>

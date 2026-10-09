@@ -11,8 +11,9 @@ const order: CompletedOrder = {
   producedQuantity: 20,
   laborHours: 5,
   standardLaborHours: 4,
-  laborRate: 100,
-  laborIsVariable: false,
+  laborCost: 500,
+  standardLaborCost: 400,
+  laborInUnitCost: false,
   standardUnitCost: 170,
   actualUnitCost: 162,
   consumptions: [
@@ -37,6 +38,20 @@ describe("analyzeOrder", () => {
     expect(v.materials[0].usageVariancePct).toBeCloseTo(0.1);
     expect(v.laborVariance).toBeCloseTo(100);
     expect(v.yieldPct).toBe(1);
+  });
+});
+
+describe("labor in unit cost", () => {
+  it("adds labor to standard and actual cost when it is paid per hour or per piece", () => {
+    const v = analyzeOrder({ ...order, laborInUnitCost: true });
+    expect(v.standardCost).toBeCloseTo(3400 + 400);
+    expect(v.actualCost).toBeCloseTo(3240 + 500);
+    expect(v.totalVariance).toBeCloseTo(v.materialUsageVariance + v.materialPriceVariance + v.laborVariance);
+  });
+
+  it("has no labor variance when paid per piece produced", () => {
+    const v = analyzeOrder({ ...order, laborInUnitCost: true, laborCost: 240, standardLaborCost: 240 });
+    expect(v.laborVariance).toBe(0);
   });
 });
 
