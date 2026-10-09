@@ -28,7 +28,9 @@ expected_columns(t, c) AS (
     UNION ALL SELECT 'user_profiles', unnest(ARRAY['id','company_id','role','full_name','created_at'])
 ),
 expected_functions(f) AS (
-    VALUES ('get_auth_company_id'), ('get_auth_role'), ('process_sale'), ('reverse_sale')
+    VALUES ('get_auth_company_id'), ('get_auth_role'), ('process_sale'), ('reverse_sale'),
+           -- Supabase's documented helper that enables RLS on new public tables (event trigger "ensure_rls")
+           ('rls_auto_enable')
 ),
 new_objects(t) AS (
     VALUES ('document_sequences'), ('sales_channels'), ('customers'), ('suppliers'), ('material_cost_history'),
@@ -78,6 +80,15 @@ checks(orden, verificacion, estado, detalle) AS (
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
     LEFT JOIN pg_depend d ON d.objid = p.oid AND d.deptype = 'e'
     WHERE n.nspname = 'public' AND d.objid IS NULL AND p.proname NOT IN (SELECT f FROM expected_functions)
+
+    UNION ALL
+    SELECT 5, 'Event triggers (informativo)',
+        CASE WHEN COUNT(*) FILTER (WHERE evtfoid::REGPROC::TEXT <> 'rls_auto_enable') = 0 THEN 'OK' ELSE 'REVISAR' END,
+        COALESCE(string_agg(evtname || ' → ' || evtfoid::REGPROC::TEXT || CASE WHEN evtenabled = 'D' THEN ' (desactivado)' ELSE '' END, ', '), '—')
+    FROM pg_event_trigger
+    WHERE evtfoid::REGPROC::TEXT NOT LIKE 'extensions.%' AND evtfoid::REGPROC::TEXT NOT LIKE 'pgsodium.%'
+      AND evtname NOT IN ('issue_graphql_placeholder', 'issue_pg_cron_access', 'issue_pg_graphql_access', 'issue_pg_net_access',
+                          'pgrst_ddl_watch', 'pgrst_drop_watch', 'pgsodium_trg_mask_update')
 
     UNION ALL
     SELECT 6, 'Triggers en tablas públicas',

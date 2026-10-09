@@ -68,24 +68,42 @@ no deja datos.
 
 Las migraciones 0006–0011 cambian el modelo de datos y migran las ventas existentes a facturas.
 
-1. **Respaldo**: descarga un respaldo del proyecto (Supabase → Database → Backups, o `pg_dump`).
-2. **Verificación previa**: ejecuta `supabase/checks/preflight_produccion.sql` en el SQL Editor del
-   proyecto de producción. Es de solo lectura. Todo debe salir `OK`; si algo sale `REVISAR`
-   (por ejemplo, objetos creados a mano), resuélvelo antes de seguir.
-3. **Historial de migraciones**: si la verificación indica que no existe el historial de la CLI y
-   el esquema coincide con 0001–0005, márcalas como aplicadas:
+1. **Verificación previa**: ejecuta `supabase/checks/preflight_produccion.sql` en el SQL Editor del
+   proyecto de producción (solo lectura). Lo esperado es todo `OK` salvo «Historial de migraciones»
+   si se aplicaron a mano. `rls_auto_enable()` / `ensure_rls` es el ayudante documentado de Supabase
+   que activa RLS en tablas nuevas; es compatible con estas migraciones.
+2. **Conectar la CLI y respaldar** (pide iniciar sesión y la contraseña de la base):
 
    ```bash
+   npx supabase login
    npx supabase link --project-ref <ref-del-proyecto>
+   npx supabase db dump --linked -f respaldo_esquema.sql
+   npx supabase db dump --linked --data-only -f respaldo_datos.sql
+   ```
+
+   Guarda ambos archivos fuera del repositorio (contienen tus datos).
+3. **Historial de migraciones**: si la verificación indicó que no existe, marca como aplicadas las
+   que ya están en la base:
+
+   ```bash
    npx supabase migration repair --status applied 0001 0002 0003 0005
    ```
 
-4. **Aplicar**: `npx supabase db push` (no ejecuta `seed.sql`). Alternativa: pegar 0006 a 0011 en
-   orden en el SQL Editor.
-5. **Auth**: en Supabase → Authentication → URL Configuration, agrega la URL del sitio y
+4. **Aplicar**: primero revisa qué se va a aplicar y luego aplica (no ejecuta `seed.sql`):
+
+   ```bash
+   npx supabase db push --dry-run
+   npx supabase db push
+   ```
+
+   `--dry-run` debe listar solo 0006 a 0011.
+5. **Verificación posterior**: ejecuta `supabase/checks/postflight_produccion.sql` en el SQL Editor.
+   Todo debe salir `OK`; confirma, entre otras cosas, que todas las ventas anteriores quedaron como
+   facturas por el mismo total.
+6. **Auth**: en Supabase → Authentication → URL Configuration, agrega la URL del sitio y
    `https://<dominio>/invitacion/*` a las URLs de redirección (las usan los enlaces de invitación
    cuando la confirmación por correo está activa).
-6. **Desplegar la web** con las mismas variables de entorno. Las rutas antiguas en inglés
+7. **Desplegar la web** con las mismas variables de entorno. Las rutas antiguas en inglés
    (`/sales`, `/products`, …) redirigen a las nuevas.
 
 ### Después de migrar (por empresa)
