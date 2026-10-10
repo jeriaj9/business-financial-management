@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { Loader2, Store, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { useAuth, type SessionUser } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Callout, LoadingState } from "@/components/ui/page";
@@ -24,7 +24,7 @@ interface Preview {
 export default function InvitationPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const router = useRouter();
-  const { user, loading, refresh, signOut } = useAuth();
+  const { user, status, refresh, signOut } = useAuth();
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -38,10 +38,11 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
     return data as Preview | null;
   });
 
-  const accept = async () => {
+  // `account` is the user that just signed in here (the auth state may not have caught up yet)
+  const accept = async (account?: SessionUser) => {
     const { data, error: rpcError } = await supabase.rpc("accept_invitation", { p_token: token, p_full_name: fullName.trim() || null });
     if (rpcError) throw rpcError;
-    await refresh();
+    await refresh(account);
     router.replace((data as { kind: string }).kind === "distributor" ? "/distribuidor" : "/app");
   };
 
@@ -50,6 +51,7 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
     setBusy(true);
     setError(null);
     try {
+      let account: SessionUser | undefined;
       if (!user) {
         if (mode === "signup") {
           const { data, error: signUpError } = await supabase.auth.signUp({
@@ -58,16 +60,18 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
             options: { data: { full_name: fullName.trim() }, emailRedirectTo: `${window.location.origin}/invitacion/${token}` },
           });
           if (signUpError) throw signUpError;
-          if (!data.session) {
+          if (!data.session || !data.user) {
             setError("Te enviamos un correo para confirmar tu cuenta. Confírmalo y vuelve a abrir este enlace.");
             return;
           }
+          account = { id: data.user.id, email: data.user.email };
         } else {
-          const { error: loginError } = await supabase.auth.signInWithPassword({ email: (preview?.email ?? email).trim(), password });
+          const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: (preview?.email ?? email).trim(), password });
           if (loginError) throw loginError;
+          account = { id: data.user.id, email: data.user.email };
         }
       }
-      await accept();
+      await accept(account);
     } catch (err) {
       setError(friendlyError(err));
     } finally {
@@ -75,7 +79,7 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
     }
   };
 
-  if (isLoading || loading) return <LoadingState label="Verificando invitación…" />;
+  if (isLoading || status === "loading") return <LoadingState label="Verificando invitación…" />;
 
   if (!preview || preview.status !== "valid") {
     const reason =

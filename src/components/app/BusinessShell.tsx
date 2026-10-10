@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { LogOut, Menu, Store, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { IdentityError } from "@/components/auth/IdentityError";
 import { BrandMark } from "@/components/app/BrandMark";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -83,21 +84,24 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function BusinessShell({ children }: { children: React.ReactNode }) {
-  const { user, profile, portalAccounts, loading, signOut } = useAuth();
+  const { user, profile, portalAccounts, status, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Route only once we know who the user is and what they can access
   useEffect(() => {
-    if (loading) return;
+    if (status !== "ready") return;
     if (!user) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     } else if (!profile?.company_id) {
       router.replace(portalAccounts.length > 0 ? "/distribuidor" : "/registro");
     }
-  }, [loading, user, profile, portalAccounts, router, pathname]);
+  }, [status, user, profile, portalAccounts, router, pathname]);
 
-  if (loading || !user || !profile?.company_id) {
+  if (status === "error" && user) return <IdentityError />;
+
+  if (status !== "ready" || !user || !profile?.company_id) {
     return <LoadingState label="Preparando tu espacio de trabajo…" className="h-dvh" />;
   }
 

@@ -8,10 +8,11 @@ import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import { brand } from "@/config/brand";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { NativeSelectField } from "@/components/ui/native-select";
-import { Callout } from "@/components/ui/page";
+import { Callout, LoadingState } from "@/components/ui/page";
+import { cn } from "@/lib/utils";
 
 const currencies = [
   { value: "DOP", label: "Peso dominicano (DOP)" },
@@ -23,7 +24,7 @@ const currencies = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { user, profile, loading, refresh } = useAuth();
+  const { user, profile, status, refresh, signOut } = useAuth();
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState<string>(brand.defaultCurrency);
@@ -35,17 +36,18 @@ export default function RegisterPage() {
 
   // Users who already belong to a company go straight to their portal
   useEffect(() => {
-    if (!loading && profile?.company_id) router.replace("/app");
-  }, [loading, profile, router]);
+    if (status === "ready" && profile?.company_id) router.replace("/app");
+  }, [status, profile, router]);
 
-  const createCompany = async () => {
+  const createCompany = async (userId: string, userEmail?: string) => {
     const { error: rpcError } = await supabase.rpc("create_company", {
       p_company_name: companyName.trim(),
       p_full_name: fullName.trim(),
       p_currency: currency,
     });
     if (rpcError) throw rpcError;
-    await refresh();
+    // Reload this user's access with the new company before entering the portal
+    await refresh({ id: userId, email: userEmail });
     router.replace("/app");
   };
 
@@ -54,20 +56,22 @@ export default function RegisterPage() {
     setSubmitting(true);
     setError(null);
     try {
-      if (!user) {
+      let account = user;
+      if (!account) {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: { data: { full_name: fullName.trim() } },
         });
         if (signUpError) throw signUpError;
-        if (!data.session) {
+        if (!data.session || !data.user) {
           // Email confirmation is enabled: finish the company setup after confirming
           setCheckEmail(true);
           return;
         }
+        account = { id: data.user.id, email: data.user.email };
       }
-      await createCompany();
+      await createCompany(account.id, account.email);
     } catch (err) {
       setError(friendlyError(err));
     } finally {
@@ -91,7 +95,21 @@ export default function RegisterPage() {
     );
   }
 
-  const signedInWithoutCompany = !loading && !!user && !profile?.company_id;
+  // Signed in: wait until we know whether the user already has a company
+  if (user && status === "loading") return <LoadingState label="Verificando tu cuenta…" />;
+  if (user && status === "ready" && profile?.company_id) return <LoadingState label="Entrando…" />;
+
+  if (user && status === "error") {
+    return (
+      <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+        <h1 className="text-xl font-semibold">No pudimos cargar tu cuenta</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Vuelve a iniciar sesión para continuar.</p>
+        <Button className="mt-6 h-10 w-full" size="lg" onClick={() => signOut("/login")}>Ir a iniciar sesión</Button>
+      </div>
+    );
+  }
+
+  const signedInWithoutCompany = status === "ready" && !!user && !profile?.company_id;
 
   return (
     <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
@@ -127,15 +145,24 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      {!signedInWithoutCompany && (
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="font-medium text-brand hover:underline">
-            Inicia sesión
-          </Link>
-        </p>
-      )}
-      <p className="mt-2 text-center text-xs text-muted-foreground">¿Te invitaron a un equipo? Abre el enlace de invitación que recibiste.</p>
+      <div className="mt-6 border-t pt-6 text-center">
+        {signedInWithoutCompany ? (
+          <>
+            <p className="text-sm text-muted-foreground">¿No es tu cuenta, o ya tienes una empresa con otro correo?</p>
+            <Button variant="outline" size="lg" className="mt-3 h-10 w-full" onClick={() => signOut("/login")}>
+              Iniciar sesión con otra cuenta
+            </Button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">¿Tienes una cuenta?</p>
+            <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-3 h-10 w-full")}>
+              Iniciar sesión
+            </Link>
+          </>
+        )}
+        <p className="mt-4 text-xs text-muted-foreground">¿Te invitaron a un equipo? Abre el enlace de invitación que recibiste.</p>
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2, LogOut } from "lucide-react";
 import { useAuth, type PortalAccount } from "@/components/auth/AuthProvider";
+import { IdentityError } from "@/components/auth/IdentityError";
 import { BrandMark } from "@/components/app/BrandMark";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -24,7 +25,7 @@ export function usePortalAccount(): PortalAccount {
 }
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
-  const { user, profile, portalAccounts, loading, signOut } = useAuth();
+  const { user, profile, portalAccounts, status, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [selectedId, setSelectedId] = useState<string | null>(() => {
@@ -37,9 +38,8 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-  }, [loading, user, router, pathname]);
+    if (status === "ready" && !user) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+  }, [status, user, router, pathname]);
 
   const account = useMemo(
     () => portalAccounts.find((a) => a.distributor_id === selectedId) ?? portalAccounts[0] ?? null,
@@ -55,7 +55,8 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  if (loading || !user) return <LoadingState label="Abriendo tu portal…" className="h-dvh" />;
+  if (status === "error" && user) return <IdentityError />;
+  if (status !== "ready" || !user) return <LoadingState label="Abriendo tu portal…" className="h-dvh" />;
 
   if (!account) {
     return (
