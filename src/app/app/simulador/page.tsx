@@ -59,8 +59,8 @@ export default function SimulatorPage() {
 
   const result = useMemo(() => (baseline ? simulate(baseline, scenario) : null), [baseline, scenario]);
 
-  if (data.isLoading || !baseline || !result) return <LoadingState label="Preparando el modelo de tu negocio…" />;
   if (data.error) return <ErrorState message={friendlyError(data.error)} onRetry={data.reload} />;
+  if (data.isLoading || !baseline || !result) return <LoadingState label="Preparando el modelo de tu negocio…" />;
 
   const currency = data.currency;
   const usedMaterials = data.materials.filter((m) => data.products.some((p) => p.recipe.some((r) => r.materialId === m.id)));

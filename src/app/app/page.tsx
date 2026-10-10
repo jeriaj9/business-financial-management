@@ -121,8 +121,8 @@ export default function SummaryPage() {
     return { month, prev, monthExpenses, trend, profit90, alerts, checklist, overdue, totalReceivable };
   }, [data, asOf, productionOrders.data, distributorOrders.data, receivables.data, suppliers.data, portalUsers.data, currency]);
 
-  if (data.isLoading || !view) return <LoadingState label="Preparando tu resumen…" />;
   if (data.error) return <ErrorState message={friendlyError(data.error)} onRetry={data.reload} />;
+  if (data.isLoading || !view) return <LoadingState label="Preparando tu resumen…" />;
 
   const growth = view.prev.revenue > 0 ? (view.month.revenue - view.prev.revenue) / view.prev.revenue : null;
   const pendingSetup = view.checklist.filter((c) => !c.done);

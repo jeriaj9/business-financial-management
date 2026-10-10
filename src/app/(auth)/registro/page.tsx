@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, MailCheck } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseAuth } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import { brand } from "@/config/brand";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -58,7 +58,7 @@ export default function RegisterPage() {
     try {
       let account = user;
       if (!account) {
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabaseAuth.signUp({
           email: email.trim(),
           password,
           options: { data: { full_name: fullName.trim() } },

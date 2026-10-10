@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabaseAuth } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import { homeFor, useAuth } from "@/components/auth/AuthProvider";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -31,7 +31,7 @@ function LoginForm() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error: authError } = await supabaseAuth.signInWithPassword({ email: email.trim(), password });
     if (authError || !data.user) {
       setError(friendlyError(authError));
       setSubmitting(false);

@@ -54,8 +54,8 @@ export default function CostImpactPage() {
     void invalidate("products", "product_price_history");
   };
 
-  if (data.isLoading || !result) return <LoadingState label="Analizando cambios de costo…" />;
   if (data.error) return <ErrorState message={friendlyError(data.error)} onRetry={data.reload} />;
+  if (data.isLoading || !result) return <LoadingState label="Analizando cambios de costo…" />;
   const currency = data.currency;
   const toReview = result.repricing.filter((r) => r.needsReview);
 

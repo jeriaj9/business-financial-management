@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { supabase, readStoredSession } from '@/lib/supabase';
+import { supabaseAuth, readStoredSession, isSessionExpired } from '@/lib/supabase';
 
 export interface BusinessProfile {
   id: string;
@@ -95,10 +95,6 @@ async function loadIdentity(userId: string): Promise<{ profile: BusinessProfile 
   return { profile, accounts: accounts ?? [] };
 }
 
-function isExpired(session: { expires_at?: number } | null): boolean {
-  return !!session?.expires_at && session.expires_at * 1000 < Date.now() + 10_000;
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
@@ -154,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let resolved = false;
 
     // onAuthStateChange is the single source of truth (avoids Strict Mode getSession deadlocks)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabaseAuth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       resolved = true;
       if (event === 'TOKEN_REFRESHED' && session?.user && session.user.id === userRef.current?.id) return;
@@ -171,11 +167,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // stored session, but only while its token is still valid.
     const fallbackTimer = setTimeout(() => {
       if (!mounted || resolved) return;
-      const stored = readStoredSession() as { user?: SessionUser; expires_at?: number } | null;
+      const stored = readStoredSession();
       if (!stored?.user) {
         resolved = true;
         void applyIdentity(null);
-      } else if (!isExpired(stored)) {
+      } else if (!isSessionExpired(stored)) {
         resolved = true;
         console.warn('Auth state change took too long; using the stored session.');
         void applyIdentity({ id: stored.user.id, email: stored.user.email });
@@ -206,8 +202,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async (redirectTo: string = '/login') => {
     // A stale session (e.g. revoked on the server) can make the remote sign-out fail; clear it locally anyway
-    const { error } = await supabase.auth.signOut();
-    if (error) await supabase.auth.signOut({ scope: 'local' });
+    const { error } = await supabaseAuth.signOut();
+    if (error) await supabaseAuth.signOut({ scope: 'local' });
     await applyIdentity(null);
     window.location.href = redirectTo;
   }, [applyIdentity]);

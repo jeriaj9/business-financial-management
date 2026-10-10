@@ -39,8 +39,8 @@ export default function MonthlyReportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.isLoading, data.sales, data.expenses, data.channels, data.products, data.materials, data.costHistory, receivables.data, month, asOf]);
 
-  if (data.isLoading || !report) return <LoadingState label="Preparando el informe…" />;
   if (data.error) return <ErrorState message={friendlyError(data.error)} onRetry={data.reload} />;
+  if (data.isLoading || !report) return <LoadingState label="Preparando el informe…" />;
 
   const currency = data.currency;
   const { current, previous, decomposition } = report;

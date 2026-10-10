@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, processLock } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -6,6 +6,11 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 if (!supabaseUrl || !supabaseKey) {
   console.error("Missing Supabase credentials. Make sure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in your environment variables.");
 }
+
+/** Every database request gives up after this long, so a screen can never load forever. */
+const REQUEST_TIMEOUT_MS = 30_000;
+/** How long a request waits for gotrue-js to refresh an expired token before using what is stored. */
+const TOKEN_REFRESH_WAIT_MS = 5_000;
 
 /**
  * Same key supabase-js uses to persist the session: `sb-<first label of the host>-auth-token`.
@@ -19,7 +24,13 @@ export const authStorageKey = (() => {
   }
 })();
 
-export function readStoredSession(): { access_token?: string; user?: { id: string; email?: string } } | null {
+export interface StoredSession {
+  access_token?: string;
+  expires_at?: number;
+  user?: { id: string; email?: string };
+}
+
+export function readStoredSession(): StoredSession | null {
   if (typeof window === 'undefined' || !authStorageKey) return null;
   try {
     const raw = window.localStorage.getItem(authStorageKey);
@@ -29,31 +40,41 @@ export function readStoredSession(): { access_token?: string; user?: { id: strin
   }
 }
 
+/** True when the stored access token has expired (or is about to). */
+export function isSessionExpired(session: StoredSession | null): boolean {
+  return !!session?.expires_at && session.expires_at * 1000 < Date.now() + 10_000;
+}
+
 // Fallback to dummy strings to prevent the entire JS bundle from crashing,
 // but auth and db calls will fail if they are missing.
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder', {
-  global: {
-    fetch: async (url, options) => {
-      // Manually inject Authorization header if we have a token in localStorage to bypass gotrue-js deadlocks
-      if (typeof window !== 'undefined') {
-        try {
-          const token = readStoredSession()?.access_token;
-          // Only override if it's not already overridden and not a gotrue-js token refresh request
-          if (token && !url.toString().includes('/auth/v1/')) {
-            options = options || {};
-            const headers = new Headers(options.headers);
-            headers.set('Authorization', `Bearer ${token}`);
-            // Ensure apikey is also explicitly preserved if missing, though Headers copy should handle it
-            if (!headers.has('apikey') && supabaseKey) {
-              headers.set('apikey', supabaseKey);
-            }
-            options.headers = headers;
-          }
-        } catch {
-          // Ignore parse errors
-        }
-      }
-      return fetch(url, options);
-    }
-  }
+const url = supabaseUrl || 'https://placeholder.supabase.co';
+const key = supabaseKey || 'placeholder';
+
+/**
+ * Sign-in, sign-up, sign-out and session events. gotrue-js serializes its work behind a lock;
+ * the default one is shared by every tab, so a stale or frozen tab could hold it forever and
+ * block this one. The in-tab lock avoids that (Supabase tolerates concurrent token refreshes).
+ */
+export const supabaseAuth = createClient(url, key, { auth: { lock: processLock } }).auth;
+
+/**
+ * Token for database requests, read from the session gotrue-js persists. Data requests never
+ * wait on gotrue-js' lock, except briefly when the stored token has expired and needs a refresh.
+ */
+async function dataAccessToken(): Promise<string | null> {
+  const stored = readStoredSession();
+  if (!stored?.access_token) return null;
+  if (!isSessionExpired(stored)) return stored.access_token;
+
+  const refreshed = await Promise.race([
+    supabaseAuth.getSession().then(({ data }) => data.session?.access_token ?? null, () => null),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), TOKEN_REFRESH_WAIT_MS)),
+  ]);
+  return refreshed ?? stored.access_token;
+}
+
+/** Database and RPC client. Authentication goes through `supabaseAuth`. */
+export const supabase = createClient(url, key, {
+  accessToken: dataAccessToken,
+  db: { timeout: REQUEST_TIMEOUT_MS },
 });

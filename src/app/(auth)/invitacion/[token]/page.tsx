@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { Loader2, Store, Users } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseAuth } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import { useAuth, type SessionUser } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
       let account: SessionUser | undefined;
       if (!user) {
         if (mode === "signup") {
-          const { data, error: signUpError } = await supabase.auth.signUp({
+          const { data, error: signUpError } = await supabaseAuth.signUp({
             email: (preview?.email ?? email).trim(),
             password,
             options: { data: { full_name: fullName.trim() }, emailRedirectTo: `${window.location.origin}/invitacion/${token}` },
@@ -66,7 +66,7 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
           }
           account = { id: data.user.id, email: data.user.email };
         } else {
-          const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: (preview?.email ?? email).trim(), password });
+          const { data, error: loginError } = await supabaseAuth.signInWithPassword({ email: (preview?.email ?? email).trim(), password });
           if (loginError) throw loginError;
           account = { id: data.user.id, email: data.user.email };
         }

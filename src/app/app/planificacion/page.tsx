@@ -116,8 +116,8 @@ export default function PlanningPage() {
     }
   };
 
-  if (base.isLoading || !plan || productionOrders.isLoading) return <LoadingState label="Calculando el plan…" />;
   if (base.error) return <ErrorState message={friendlyError(base.error)} onRetry={base.reload} />;
+  if (base.isLoading || !plan || productionOrders.isLoading) return <LoadingState label="Calculando el plan…" />;
 
   const toProduce = plan.production.filter((p) => p.suggestedQuantity > 0);
   const toBuy = plan.materials.filter((m) => m.suggestedPurchase > 0);
